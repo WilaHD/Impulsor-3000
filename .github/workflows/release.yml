@@ -1,0 +1,25 @@
+name: Release
+
+on:
+  push:
+    tags:
+    - 'v*'
+
+jobs:
+  do-rust-stuff:
+    uses: ./.github/workflows/rust.yml
+  do-release:
+    needs: do-rust-stuff
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+    - uses: actions/download-artifact@v4
+      with:
+        run-id: build-windows-x64-installer
+        name: installer-windows
+        path: ./installer
+    - uses: ncipollo/release-action@v1
+      with:
+        artifacts: "./installer/Impulsor-3000_Installer.exe"
+        bodyFile: ""

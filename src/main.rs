@@ -1,6 +1,6 @@
 use pdfium_render::prelude::* ;
 
-use impulsor3000::*;
+use Impulsor_3000::*;
 
 fn main() {
 
@@ -20,6 +20,10 @@ fn main() {
 
     let _ = convert(file_paths);
     
+    println!("\n[ENTER] beendet das Programm");
+
+    let mut buffer = String::new();
+    let _ = std::io::stdin().read_line(&mut buffer);
 }
 
 fn convert(file_paths: Vec<String>) -> Result<(), ()> {

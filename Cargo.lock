@@ -3,6 +3,16 @@
 version = 3
 
 [[package]]
+name = "Impulsor-3000"
+version = "0.1.0"
+dependencies = [
+ "image",
+ "pdfium-render",
+ "rfd",
+ "winres",
+]
+
+[[package]]
 name = "adler"
 version = "1.0.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -858,16 +868,6 @@ dependencies = [
  "png",
  "qoi",
  "tiff",
-]
-
-[[package]]
-name = "impulsor3000"
-version = "0.1.0"
-dependencies = [
- "image",
- "pdfium-render",
- "rfd",
- "winres",
 ]
 
 [[package]]
