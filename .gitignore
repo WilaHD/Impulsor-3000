@@ -1,0 +1,8 @@
+.vscode
+Impulsor3000.code-workspace
+pdfium
+target
+test/impulse
+installer/Impulsor3000_Installer.exe
+installer/install_dir/impulsor3000.exe
+installer/install_dir/pdfium/win-x64/pdfium.dll
