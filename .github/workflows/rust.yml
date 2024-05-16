@@ -76,6 +76,8 @@ jobs:
         scoop install nsis
     
     - uses: actions/checkout@v4
+      with:
+        lfs: true
     - uses: actions/download-artifact@v4
       with:
         run-id: build-windows-x64-binary
