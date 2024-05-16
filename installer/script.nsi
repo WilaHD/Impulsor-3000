@@ -23,7 +23,7 @@ var SM_Folder
 
 !system "bash -c 'mkdir ./install_dir'"
 !system "bash -c 'mkdir ./install_dir/pdfium'"
-!system "bash -c 'mkdir ./install_dir/pdfium/win_x64'"
+!system "bash -c 'mkdir ./install_dir/pdfium/win-x64'"
 !system "bash -c 'cp ../target/release/Impulsor-3000.exe ./install_dir/Impulsor-3000.exe'"
 !system "bash -c 'cp ../pdfium/win-x64/pdfium.dll ./install_dir/pdfium/win-x64/pdfium.dll'"
 
