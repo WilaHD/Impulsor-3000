@@ -1,6 +1,5 @@
 use std::{collections::HashMap, fs::File, io::Write};
 
-use image::ImageFormat;
 use pdfium_render::prelude::*;
 
 pub const TITLE:&str = r#"
@@ -44,7 +43,7 @@ impl<'a> Impuls<'a> {
         page_one.render_with_config(&render_config)?
             .as_image()
             .as_rgba8().ok_or(PdfiumError::ImageError)?
-            .save_with_format(file_path, ImageFormat::Jpeg)?;
+            .save_with_format(file_path, image::ImageFormat::Jpeg)?;
 
         Ok(())
     }

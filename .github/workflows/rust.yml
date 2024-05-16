@@ -2,21 +2,95 @@ name: Rust
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
   pull_request:
-    branches: [ "main" ]
+    branches: [ "main", "develop" ]
+  workflow_call: 
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
+  build-linux-x64-binary:
 
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-20.04
 
     steps:
     - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Build release
+      run: cargo build --verbose --release
+    # - name: Run tests
+    #   run:  cargo test --verbose
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-linux
+        path: target/release/Impulsor-3000
+
+  build-windows-x64-binary:
+
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/cache@v4
+      with:
+        path: |
+          ~/.cargo/bin/
+          ~/.cargo/registry/index/
+          ~/.cargo/registry/cache/
+          ~/.cargo/git/db/
+          target/
+        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Build release
+      run: cargo build --verbose --release
+    # - name: Run tests
+    #   run:  cargo test --verbose
+    - name: Upload binary
+      uses: actions/upload-artifact@v4
+      with:
+        name: binary-windows
+        path: ./target/release/Impulsor-3000.exe
+
+  build-windows-x64-installer:
+
+    runs-on: windows-latest
+    needs: build-windows-x64-binary
+
+    steps:
+    - name: Install NSIS
+      run: |
+        iwr -useb get.scoop.sh -outfile 'install.ps1'
+        .\install.ps1 -RunAsAdmin
+        scoop update
+        scoop bucket add extras
+        scoop install nsis
+    
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - uses: actions/download-artifact@v4
+      with:
+        run-id: build-windows-x64-binary
+        name: binary-windows
+        path: ./target/release
+
+    
+    - name: Build installer
+      working-directory: ./installer
+      run: makensis.exe /V4 .\script.nsi      
+    
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: installer-windows
+        path: ./installer/Impulsor-3000_Installer.exe

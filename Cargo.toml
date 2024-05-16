@@ -1,22 +1,13 @@
 [package]
-name = "impulsor3000"
+name = "Impulsor-3000"
 version = "0.1.0"
 edition = "2021"
 build = "build.rs"
 
 [dependencies]
 image = "0.24.8"
-pdfium-render =  { version="0.8" }
+pdfium-render =  { version="0.8.17" }
 rfd = "0.14"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"
-
-[target.'cfg(windows)'.x86_64-pc-windows-msvc]
-linker = "lld"
-rustflags = [
-  "-Lnative=/home/rosinski/.xwin/crt/lib/x86_64",
-  "-Lnative=/home/rosinski/.xwin/sdk/lib/um/x86_64",
-  "-Lnative=/home/rosinski/.xwin/sdk/lib/ucrt/x86_64"
-]
-

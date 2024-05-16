@@ -1,11 +1,11 @@
-!define APP_NAME "Impulsor3000"
+!define APP_NAME "Impulsor 3000"
 !define COMP_NAME "Kirchgemeinden im Striegistal"
 !define WEB_SITE "https://kirchgemeinden-im-striegistal.de/"
 !define VERSION "0.1.0.0"
 !define COPYRIGHT "Kirchgemeinden im Striegistal, 2024"
 !define DESCRIPTION "Programm zur Umwandlung der Impuls-PDF-Dateien in Bilder und Text-Vorlagen für Wordpress. "
-!define INSTALLER_NAME "Impulsor3000_Installer.exe"
-!define MAIN_APP_EXE "Impulsor3000.exe"
+!define INSTALLER_NAME "Impulsor-3000_Installer.exe"
+!define MAIN_APP_EXE "Impulsor-3000.exe"
 !define ICON "icon.ico"
 !define BANNER "banner.bmp"
 #!define LICENSE_TXT "[CHANGEME License Text Document]"
@@ -21,8 +21,11 @@ var SM_Folder
 
 ######################################################################
 
-!system "bash -c 'cp ../target/release/impulsor3000.exe ./install_dir/'"
-!system "bash -c 'cp ../pdfium/win-x64/pdfium.dll ./install_dir/pdfium/win-x64/'"
+!system "bash -c 'mkdir ./install_dir'"
+!system "bash -c 'mkdir ./install_dir/pdfium'"
+!system "bash -c 'mkdir ./install_dir/pdfium/win-x64'"
+!system "bash -c 'cp ../target/release/Impulsor-3000.exe ./install_dir/Impulsor-3000.exe'"
+!system "bash -c 'cp ../pdfium/win-x64/pdfium.dll ./install_dir/pdfium/win-x64/pdfium.dll'"
 
 ######################################################################
 
