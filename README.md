@@ -1,4 +1,4 @@
-# Impulsor 3000 <img src="imgs/logo.jpg" width="50" /> 
+# Impulsor 3000 <img src="imgs/logo.png" width="50" align="left" /> 
 
 ![GitHub Release](https://img.shields.io/github/v/release/WilaHD/Impulsor-3000?label=release%20version)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/WilaHD/Impulsor-3000/.github%2Fworkflows%2Frelease.yml?label=build%20release)

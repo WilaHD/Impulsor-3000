@@ -84,7 +84,6 @@ jobs:
         name: binary-windows
         path: ./target/release
 
-    
     - name: Build installer
       working-directory: ./installer
       run: makensis.exe /V4 .\script.nsi      
