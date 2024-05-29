@@ -78,7 +78,7 @@ jobs:
 
     - name: Install AppImageTool
       run: |
-        apt-get update && apt-get install wget file desktop-file-utils -y
+        apt update && apt search desktop-file-validate && apt install wget file desktop-file-utils -y
         wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x ./appimagetool-x86_64.AppImage
         mv ./appimagetool-x86_64.AppImage ./installer/linux/appimage/appimagetool-x86_64.AppImage
