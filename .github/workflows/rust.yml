@@ -67,13 +67,6 @@ jobs:
     needs: build-linux-x64-binary
 
     steps:
-    - name: Install AppImageTool
-      run: |
-        apt-get update && apt-get install wget file desktop-file-utils -y
-        wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x ./appimagetool-x86_64.AppImage
-        mv ./appimagetool-x86_64.AppImage ./installer/linux/appimagetool-x86_64.AppImage
-    
     - uses: actions/checkout@v4
       with:
         lfs: true
@@ -82,6 +75,13 @@ jobs:
         run-id: build-linux-x64-binary
         name: binary-linux
         path: ./target/release
+
+    - name: Install AppImageTool
+      run: |
+        apt-get update && apt-get install wget file desktop-file-utils -y
+        wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x ./appimagetool-x86_64.AppImage
+        mv ./appimagetool-x86_64.AppImage ./installer/linux/appimagetool-x86_64.AppImage
 
     - name: Build AppImage
       working-directory: ./installer/linux/appimage
