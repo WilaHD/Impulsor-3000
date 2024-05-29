@@ -87,7 +87,7 @@ jobs:
       working-directory: ./installer/linux/appimage
       run: |
         bash setup.sh
-        ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
+        ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
     
     - name: Upload installer
       uses: actions/upload-artifact@v4
