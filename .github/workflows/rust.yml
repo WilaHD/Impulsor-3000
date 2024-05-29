@@ -61,6 +61,39 @@ jobs:
         name: binary-windows
         path: ./target/release/Impulsor-3000.exe
 
+  build-linux-x64-appimage:
+
+    runs-on: ubuntu-latest
+    needs: build-linux-x64-binary
+
+    steps:
+    - name: Install AppImageTool
+      run: |
+        apt-get update && apt-get install wget file desktop-file-utils -y
+        wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+        chmod +x ./appimagetool-x86_64.AppImage
+    
+    - uses: actions/checkout@v4
+      with:
+        lfs: true
+    - uses: actions/download-artifact@v4
+      with:
+        run-id: build-linux-x64-binary
+        name: binary-linux
+        path: ./target/release
+
+    - name: Build AppImage
+      working-directory: ./installer/linux/appimage
+      run: |
+        bash setup.sh
+        ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
+    
+    - name: Upload installer
+      uses: actions/upload-artifact@v4
+      with:
+        name: appimage-linux
+        path: ./installer/linux/appimage/Impulsor-3000-x86_64.AppImage
+
   build-windows-x64-installer:
 
     runs-on: windows-latest
@@ -85,11 +118,11 @@ jobs:
         path: ./target/release
 
     - name: Build installer
-      working-directory: ./installer
+      working-directory: ./installer/windows
       run: makensis.exe /V4 .\script.nsi      
     
     - name: Upload installer
       uses: actions/upload-artifact@v4
       with:
         name: installer-windows
-        path: ./installer/Impulsor-3000_Installer.exe
+        path: ./installer/windows/Impulsor-3000_Installer.exe
