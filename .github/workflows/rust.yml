@@ -88,7 +88,7 @@ jobs:
       run: |
         bash setup.sh
         ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
-        ls -l
+        mv Impulsor_3000-x86_64.AppImage Impulsor-3000-x86_64.AppImage
 
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
