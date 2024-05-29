@@ -8,4 +8,5 @@ cp ../../../pdfium/linux-x64/libpdfium.so ${APPDIR}/pdfium/linux-x64/libpdfium.s
 cp ../../../target/release/Impulsor-3000 ${APPDIR}/Impulsor-3000
 cp ../../../imgs/logo.png ${APPDIR}/Impulsor-3000.png
 
+chmod u+x ${APPDIR}/Impulsor-3000
 cd ${APPDIR} && ln -s ./Impulsor-3000 ./AppRun
