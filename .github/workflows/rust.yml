@@ -81,7 +81,7 @@ jobs:
         apt-get update && apt-get install wget file desktop-file-utils -y
         wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
         chmod +x ./appimagetool-x86_64.AppImage
-        mv ./appimagetool-x86_64.AppImage ./installer/linux/appimagetool-x86_64.AppImage
+        mv ./appimagetool-x86_64.AppImage ./installer/linux/appimage/appimagetool-x86_64.AppImage
 
     - name: Build AppImage
       working-directory: ./installer/linux/appimage
