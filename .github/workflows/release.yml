@@ -19,7 +19,12 @@ jobs:
         run-id: build-windows-x64-installer
         name: installer-windows
         path: ./installer
+    - uses: actions/download-artifact@v4
+      with:
+        run-id: build-linux-x64-appimage
+        name: appimage-linux
+        path: ./appimage
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "./installer/Impulsor-3000_Installer.exe"
+        artifacts: "./installer/Impulsor-3000_Installer.exe,./appimage/Impulsor-3000-x86_64.AppImage"
         bodyFile: ""
