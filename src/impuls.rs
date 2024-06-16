@@ -81,7 +81,7 @@ impl<'a> Impuls<'a> {
         let map_pdf = map_pdf;
 
         let Some(Some(pdf_losung)) = map_pdf.get("Losung") else {
-            panic!("PDF field 'Losung' not found");
+            return Err("PDF field 'Losung' not found".into())
         };
         
         let pdf_losung_vec = if pdf_losung.contains("\r\n") {
@@ -103,12 +103,12 @@ impl<'a> Impuls<'a> {
         // };
 
         let Some(Some(pdf_text)) = map_pdf.get("Text Tagesimpuls") else {
-            panic!("PDF field 'Text Tagesimpuls' not found");
+            return Err("PDF field 'Text Tagesimpuls' not found".into());
         };
         let pdf_text = pdf_text.trim();
 
         let Some(Some(pdf_autor)) = map_pdf.get("Autor") else {
-            panic!("PDF field 'Autor' not found");
+            return Err("PDF field 'Autor' not found".into());
         };
         let pdf_autor = pdf_autor.trim();
 
