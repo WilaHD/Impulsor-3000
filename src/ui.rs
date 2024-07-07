@@ -1,7 +1,7 @@
 use pdfium_render::prelude::* ;
 use iced::{ 
     alignment::Horizontal, executor, theme, widget::{
-        button, column, container, horizontal_rule, progress_bar, row, scrollable, svg, tooltip, vertical_space, text, Column, Tooltip
+        button, column, container, horizontal_rule, progress_bar, row, scrollable, svg, text, tooltip, vertical_space, Column, Tooltip
     }, Alignment, Application, Command, Element, Length, Settings, Theme 
 };
 use rust_embed::Embed;
@@ -171,9 +171,16 @@ impl Application for MainView {
             CurrentMode::Start => {
                 let content = match &self.pdfium {
                     PdfiumLibState::Ok(_) => {
-                        container(button(container(text("Impuls-PDF-Datei(en) auswählen")).center_x().center_y())
-                            .on_press(Message::ConvertStart)
-                            .height(100).width(500)
+                        container(
+                            column![
+                                vertical_space().height(100),
+                                button(container(text("Impuls-PDF-Datei(en) auswählen")).center_x().center_y())
+                                    .on_press(Message::ConvertStart)
+                                    .height(100).width(500),
+                                // container(text("Oder Dateien in das Fenster ziehen"))
+                                //     .height(100).width(500)
+                                //     .center_x().center_y(),
+                            ]
                         )
                     },
                     PdfiumLibState::NotFound(error_msg) => {

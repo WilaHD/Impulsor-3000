@@ -94,8 +94,16 @@ impl<'a> Impuls<'a> {
             pdf_losung.split("\n\n").collect::<Vec<&str>>()
         };
 
-        let pdf_losung_at = pdf_losung_vec[0].trim();
-        let pdf_losung_nt = pdf_losung_vec[1].trim();
+        let Some(pdf_losung_at) = pdf_losung_vec.get(0) else {
+            return Err("PDF field 'Losung' could not be parsed correct. There is a problem with the biblical text (AT) and the indication of the passage.".into());
+        };
+
+        let Some(pdf_losung_nt) = pdf_losung_vec.get(1) else {
+            return Err("PDF field 'Losung' could not be parsed correct. There is a problem with the biblical text (NT) and the indication of the passage.".into());
+        };
+
+        let pdf_losung_at = pdf_losung_at.trim();
+        let pdf_losung_nt = pdf_losung_nt.trim();
 
         
         // let Some(Some(pdf_wochentag)) = map_pdf.get("Wochentag") else {
