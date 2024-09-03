@@ -10,7 +10,8 @@ use Impulsor_3000::choose_pdfium_by_os_arch;
 
 use crate::impuls::{
     Impuls,
-    ImpulsConvertingState, ImpulsModel
+    ImpulsConvertingState,
+    ImpulsModel
 };
 
 #[derive(Embed)]
