@@ -6,9 +6,9 @@ build = "build.rs"
 exclude = ["archive"]
 
 [dependencies]
-iced = { version = "0.12", features = ["svg"] }
-image = "0.24.8"
-pdfium-render =  { version="0.8.17" }
+iced = { version = "0.13.1", features = ["svg"] }
+pdfium-render =  { version="0.8", features = ["image"]}
+image = "0"
 rfd = "0.14"
 rust-embed = "8.4.0"
 

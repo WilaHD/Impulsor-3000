@@ -1,6 +1,6 @@
 use std::{collections::HashMap, fs::File};
 
-use pdfium_render::{document::PdfDocument, error::PdfiumError, page::PdfPageRenderRotation, pdfium::Pdfium, render_config::PdfRenderConfig};
+use pdfium_render::prelude::{PdfDocument, PdfiumError, PdfPageRenderRotation, Pdfium, PdfRenderConfig};
 
 
 pub struct ImpulsModel {
@@ -58,7 +58,7 @@ impl<'a> Impuls<'a> {
     
         page_one.render_with_config(&render_config)?
             .as_image()
-            .as_rgba8().ok_or(PdfiumError::ImageError)?
+            .into_rgb8()
             .save_with_format(file_path, image::ImageFormat::Jpeg)?;
 
         Ok(())

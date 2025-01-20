@@ -1,8 +1,8 @@
 use pdfium_render::prelude::* ;
 use iced::{ 
-    alignment::Horizontal, executor, theme, widget::{
+    alignment::Horizontal, executor, widget::{
         button, column, container, horizontal_rule, progress_bar, row, scrollable, svg, text, tooltip, vertical_space, Column, Tooltip
-    }, Alignment, Application, Command, Element, Length, Settings, Theme 
+    }, window, Alignment, Element, Fill, Task, Theme 
 };
 use rust_embed::Embed;
 
@@ -17,13 +17,6 @@ use crate::impuls::{
 #[derive(Embed)]
 #[folder = "imgs/svgs/"]
 struct AssetImages;
-
-struct MainView {
-    pdfs: Vec<ImpulsModel>,
-    current_mode: CurrentMode,
-    progress: usize,
-    pdfium: PdfiumLibState,
-}
 
 pub enum PdfiumLibState {
     Ok(Pdfium),
@@ -44,8 +37,15 @@ pub enum Message {
     ConvertDone,
 }
 
+struct MainView {
+    pdfs: Vec<ImpulsModel>,
+    current_mode: CurrentMode,
+    progress: usize,
+    pdfium: PdfiumLibState,
+}
+
 impl MainView {
-    fn process_file(&mut self) -> Command<Message> {
+    fn process_file(&mut self) -> Task<Message> {
         if let PdfiumLibState::Ok(pdfium) = &self.pdfium {
             if self.progress < self.pdfs.len() {
 
@@ -68,30 +68,20 @@ impl MainView {
                 };
     
                 self.progress += 1;
-                return Command::perform(async {()}, |_| Message::ConvertNext)
+                return Task::perform(async {()}, |_| Message::ConvertNext)
             }
             else {
                 self.progress += 1;
-                return Command::perform(async {()}, |_| Message::ConvertDone)
+                return Task::perform(async {()}, |_| Message::ConvertDone)
             }
         }
         else {
-            return Command::perform(async {()}, |_| Message::ConvertDone)
+            return Task::perform(async {()}, |_| Message::ConvertDone)
         };
     }
 
-}
+    fn new() -> (MainView, Task<Message>) {
 
-impl Application for MainView {
-
-    type Message = Message;
-    type Theme = Theme;
-    type Executor = executor::Default;
-    type Flags = ();
-
-    // Initializes the Application with the flags provided to run as part of the Settings.
-    fn new(_flags: ()) -> (MainView, Command<Message>) {
-        
         let pdfium_lib_state = match choose_pdfium_by_os_arch() {
             Ok(pdfium_path) => {
                 match Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(&pdfium_path)) {
@@ -99,7 +89,9 @@ impl Application for MainView {
                         let pdfium = Pdfium::new(pdfium);
                         PdfiumLibState::Ok(pdfium)
                     },
-                    Err(_) => todo!(),
+                    Err(e) => {
+                        panic!("Pdfium library not found at {pdfium_path} \n Error: {e:?}")
+                    },
                 }
             },
             Err(e) => PdfiumLibState::NotFound(e),
@@ -111,7 +103,7 @@ impl Application for MainView {
                 current_mode: CurrentMode::Start,
                 progress: 0,
                 pdfium: pdfium_lib_state,
-            }, Command::none()
+            }, Task::none()
         )
     }
 
@@ -119,7 +111,7 @@ impl Application for MainView {
         String::from("Impulsor 3000")
     }
 
-    fn update(&mut self, message: Self::Message) -> Command<Message> {
+    fn update(&mut self, message: Message) -> Task<Message> {
         match message {
             Message::ConvertStart => {
                 self.current_mode = CurrentMode::Converting;
@@ -127,7 +119,7 @@ impl Application for MainView {
                 let picked_files = rfd::FileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
                     .add_filter("Impuls.pdf", &["pdf"])
-                    .set_directory("~")
+                    //.set_directory("~")
                     .pick_files();
 
                 self.pdfs = vec![];
@@ -140,7 +132,7 @@ impl Application for MainView {
                 }
 
                 self.progress = 0;
-                return Command::perform(async {()}, |_| Message::ConvertNext)
+                return Task::perform(async {()}, |_| Message::ConvertNext)
             },
             Message::ConvertNext => {
                 return self.process_file();
@@ -149,13 +141,12 @@ impl Application for MainView {
                 self.current_mode = CurrentMode::Default;
             },
             Message::Exit => {
-                return iced::window::close(iced::window::Id::MAIN);
+                return window::get_latest().and_then(window::close)
             },
         }
 
-        Command::none()
+        Task::none()
     }
-
 
     fn view(&self) -> Element<Message> {
 
@@ -163,10 +154,10 @@ impl Application for MainView {
             svg(
                 iced::widget::svg::Handle::from_memory(AssetImages::get("banner.svg").unwrap().data)
             )
-            .width(Length::Fill)
+            .width(Fill)
         )
             .max_height(150)
-            .center_x();
+            .center_x(Fill);
 
         match self.current_mode {
             CurrentMode::Start => {
@@ -175,7 +166,7 @@ impl Application for MainView {
                         container(
                             column![
                                 vertical_space().height(100),
-                                button(container(text("Impuls-PDF-Datei(en) auswählen")).center_x().center_y())
+                                button(container(text("Impuls-PDF-Datei(en) auswählen")).center_x(Fill).center_y(Fill))
                                     .on_press(Message::ConvertStart)
                                     .height(100).width(500),
                                 // container(text("Oder Dateien in das Fenster ziehen"))
@@ -192,23 +183,23 @@ impl Application for MainView {
                 column![
                     title,
                     container(content)
-                        .width(Length::Fill)
-                        .height(Length::Fill)
+                        .width(Fill)
+                        .height(Fill)
                         .align_x(Horizontal::Center)
                         .align_y(iced::alignment::Vertical::Center),
-                ].align_items(Alignment::Center)
+                ].align_x(Alignment::Center)
                 .into()
             },
 
             CurrentMode::Default | CurrentMode::Converting => {
     
-                let mut content = Column::new().align_items(Alignment::Center);
+                let mut content = Column::new().align_x(Alignment::Center);
 
                 fn build_icon_default() -> Tooltip<'static, Message> {
                     let handle_image_success = iced::widget::svg::Handle::from_memory(AssetImages::get("default.svg").unwrap().data);
                     let svg_image_success = svg(handle_image_success).height(20).width(20);
                     
-                    let tooltip_message = container(text("Verarbeitung ausstehend")).style(theme::Container::Box);
+                    let tooltip_message = container(text("Verarbeitung ausstehend")).style(container::bordered_box);
                     let image_success = tooltip(svg_image_success, tooltip_message, tooltip::Position::Left);
                     image_success
                 }
@@ -217,7 +208,7 @@ impl Application for MainView {
                     let handle_image_success = iced::widget::svg::Handle::from_memory(AssetImages::get("image-success.svg").unwrap().data);
                     let svg_image_success = svg(handle_image_success).height(20).width(20);
                     
-                    let tooltip_message = container(text("Bild erfolgreich erstellt")).style(theme::Container::Box);
+                    let tooltip_message = container(text("Bild erfolgreich erstellt")).style(container::bordered_box);
                     let image_success = tooltip(svg_image_success, tooltip_message, tooltip::Position::Left);
                     image_success
                 }
@@ -228,7 +219,7 @@ impl Application for MainView {
                     let handle_image_error = iced::widget::svg::Handle::from_memory(AssetImages::get("image-error.svg").unwrap().data);
                     let svg_image_error = svg(handle_image_error).height(20).width(20);
                     
-                    let tooltip_message = container(text(tooltip_message)).style(theme::Container::Box);
+                    let tooltip_message = container(text(tooltip_message)).style(container::bordered_box);
                     let image_error = tooltip(svg_image_error, tooltip_message, tooltip::Position::Left);
                     image_error
                 }
@@ -237,7 +228,7 @@ impl Application for MainView {
                     let handle_html_success = iced::widget::svg::Handle::from_memory(AssetImages::get("html-success.svg").unwrap().data);
                     let svg_html_success = svg(handle_html_success).height(20).width(20);
                     
-                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text("Wordpress-Text erfolgreich erstellt")).style(theme::Container::Box);
+                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text("Wordpress-Text erfolgreich erstellt")).style(container::bordered_box);
                     let html_success = tooltip(svg_html_success, tooltip_message, tooltip::Position::Left);
                     html_success
                 }
@@ -248,13 +239,13 @@ impl Application for MainView {
                     let handle_html_error = iced::widget::svg::Handle::from_memory(AssetImages::get("html-error.svg").unwrap().data);
                     let svg_html_error = svg(handle_html_error).height(20).width(20);
                     
-                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text(tooltip_message)).style(theme::Container::Box);
+                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text(tooltip_message)).style(container::bordered_box);
                     let html_error: Tooltip<Message, _, iced::Renderer> =  tooltip(svg_html_error, tooltip_message, tooltip::Position::Left);
                     html_error
                 }
 
                 for i in &self.pdfs {
-                    let impuls_name = text(&i.file_name).horizontal_alignment(Horizontal::Left).width(Length::Fill);
+                    let impuls_name = text(&i.file_name).align_x(Horizontal::Left).width(Fill);
                     let impuls_tip = tooltip(impuls_name, &*i.file_path, tooltip::Position::FollowCursor);
 
                     let impuls_state_html = match &i.state_html {
@@ -281,7 +272,7 @@ impl Application for MainView {
                 let control_row = 
                     if matches!(self.current_mode, CurrentMode::Converting) {
                         row![
-                            progress_bar(0.0..=self.pdfs.len() as f32, self.progress as f32).width(Length::Fill)
+                            progress_bar(0.0..=self.pdfs.len() as f32, self.progress as f32).width(Fill)
                         ].spacing(20).padding(20)
                     } 
                     else { 
@@ -289,19 +280,19 @@ impl Application for MainView {
                             container(
                                 button("Neu umwandeln")
                                     .on_press(Message::ConvertStart)
-                                    .style(theme::Button::Secondary)
-                            ).align_x(Horizontal::Left).width(Length::Fill),
+                                    .style(button::secondary)
+                            ).align_x(Horizontal::Left).width(Fill),
                             container(
                                 button("Beenden")
                                     .on_press(Message::Exit)
-                            ).align_x(Horizontal::Right).style(theme::Container::Box)
+                            ).align_x(Horizontal::Right).style(container::bordered_box)
                         ].spacing(20).padding(20)
                     };
                 
                 column!(
                     container(title).padding(20),
                     horizontal_rule(1),
-                    container(scrollable(content)).padding(20).width(Length::Fill),
+                    container(scrollable(content)).padding(20).width(Fill),
                     vertical_space(),
                     horizontal_rule(1),
                     control_row,
@@ -309,8 +300,14 @@ impl Application for MainView {
             }
         }
     }
+
+    fn theme(&self) -> Theme {
+        Theme::default()
+    }
 }
 
 pub fn main() -> iced::Result {
-    MainView::run(Settings::default())
+    iced::application(MainView::title, MainView::update, MainView::view)
+        .theme(MainView::theme)
+        .run_with(MainView::new)
 }

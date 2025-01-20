@@ -1,6 +1,6 @@
 pub mod ui;
 pub mod impuls;
 
-fn main() -> iced::Result {
-    ui::main()
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    Ok(ui::main()?)
 }
