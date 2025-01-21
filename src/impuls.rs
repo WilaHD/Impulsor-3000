@@ -2,7 +2,6 @@ use std::{collections::HashMap, fs::File};
 
 use pdfium_render::prelude::{PdfDocument, PdfiumError, PdfPageRenderRotation, Pdfium, PdfRenderConfig};
 
-
 pub struct ImpulsModel {
     pub state_html: ImpulsConvertingState,
     pub state_image: ImpulsConvertingState,

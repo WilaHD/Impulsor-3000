@@ -1,22 +1,24 @@
 use pdfium_render::prelude::* ;
 use iced::{ 
-    alignment::Horizontal, executor, widget::{
-        button, column, container, horizontal_rule, progress_bar, row, scrollable, svg, text, tooltip, vertical_space, Column, Tooltip
+    alignment::Horizontal, widget::{
+        button, column, container, horizontal_rule, progress_bar, row, scrollable, text, tooltip, vertical_space, Column
     }, window, Alignment, Element, Fill, Task, Theme 
 };
-use rust_embed::Embed;
 
+pub mod file_assets;
+pub mod file_background;
+pub mod file_icons;
+pub mod file_banner;
+
+use rfd::FileHandle;
 use Impulsor_3000::choose_pdfium_by_os_arch;
-
-use crate::impuls::{
+use file_icons::*;
+use crate::{core::impuls_file::audio::{AudioConvertingState, AudioModel}, impuls::{
     Impuls,
     ImpulsConvertingState,
     ImpulsModel
-};
-
-#[derive(Embed)]
-#[folder = "imgs/svgs/"]
-struct AssetImages;
+}};
+use crate::core::impuls_file::ImpulsFileType;
 
 pub enum PdfiumLibState {
     Ok(Pdfium),
@@ -25,20 +27,22 @@ pub enum PdfiumLibState {
 
 pub enum CurrentMode {
     Start,
+    Locked,
     Default,
     Converting,
 }
 
-#[derive(Debug, Clone, Copy)]
+#[derive(Debug, Clone)]
 pub enum Message {
     Exit,
-    ConvertStart,
+    ConvertFileDialog,
+    ConvertFilesStart(Option<Vec<FileHandle>>),
     ConvertNext,
     ConvertDone,
 }
 
 struct MainView {
-    pdfs: Vec<ImpulsModel>,
+    file_queue: Vec<ImpulsFileType>,
     current_mode: CurrentMode,
     progress: usize,
     pdfium: PdfiumLibState,
@@ -47,26 +51,32 @@ struct MainView {
 impl MainView {
     fn process_file(&mut self) -> Task<Message> {
         if let PdfiumLibState::Ok(pdfium) = &self.pdfium {
-            if self.progress < self.pdfs.len() {
+            if self.progress < self.file_queue.len() {
+                match &mut self.file_queue[self.progress] {
+                    ImpulsFileType::Audio(impuls_audio_model) => {
+                        println!("Convert Audio: {}", &impuls_audio_model.get_complete_path());
+                        impuls_audio_model.convert();
+                    },
+                    ImpulsFileType::Pdf(impuls_model) => {
 
-                let impuls_model = &mut self.pdfs[self.progress];
+                        println!("Load Impuls: {}", &impuls_model.file_path);
+                        let impuls_loaded = Impuls::build_from_model(impuls_model, &pdfium);
+                        let impuls_loaded = impuls_loaded.unwrap();
+            
+                        println!("Build HTML");
+                        impuls_model.state_html = match impuls_loaded.save_as_txt(impuls_model) {
+                            Ok(_) => ImpulsConvertingState::Success,
+                            Err(e) => ImpulsConvertingState::Failure(e.to_string()),
+                        };
+            
+                        println!("Build Image");
+                        impuls_model.state_image = match impuls_loaded.save_as_jpg(impuls_model) {
+                            Ok(_) => ImpulsConvertingState::Success,
+                            Err(e) => ImpulsConvertingState::Failure(e.to_string()),
+                        };
+                    },
+                }
                 
-                println!("Load Impuls: {}", &impuls_model.file_path);
-                let impuls_loaded = Impuls::build_from_model(impuls_model, &pdfium);
-                let impuls_loaded = impuls_loaded.unwrap();
-    
-                println!("Build HTML");
-                impuls_model.state_html = match impuls_loaded.save_as_txt(impuls_model) {
-                    Ok(_) => ImpulsConvertingState::Success,
-                    Err(e) => ImpulsConvertingState::Failure(e.to_string()),
-                };
-    
-                println!("Build Image");
-                impuls_model.state_image = match impuls_loaded.save_as_jpg(impuls_model) {
-                    Ok(_) => ImpulsConvertingState::Success,
-                    Err(e) => ImpulsConvertingState::Failure(e.to_string()),
-                };
-    
                 self.progress += 1;
                 return Task::perform(async {()}, |_| Message::ConvertNext)
             }
@@ -99,7 +109,7 @@ impl MainView {
 
         (
             Self {
-                pdfs: vec![],
+                file_queue: vec![],
                 current_mode: CurrentMode::Start,
                 progress: 0,
                 pdfium: pdfium_lib_state,
@@ -113,22 +123,33 @@ impl MainView {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
-            Message::ConvertStart => {
-                self.current_mode = CurrentMode::Converting;
+            Message::ConvertFileDialog => {
+                self.current_mode = CurrentMode::Locked;
 
-                let picked_files = rfd::FileDialog::new()
+                let picked_files_future = rfd::AsyncFileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
-                    .add_filter("Impuls.pdf", &["pdf"])
-                    //.set_directory("~")
-                    .pick_files();
+                    .add_filter("Impuls.pdf / Audio.m4a", &["pdf", "m4a"]);
+                
+                return Task::perform(picked_files_future.pick_files(), Message::ConvertFilesStart);
 
-                self.pdfs = vec![];
-                for file in &picked_files.unwrap() {
-                    
-                    let impuls = ImpulsModel::build_from_path_buf(
-                        &file
-                    );
-                    self.pdfs.push(impuls);
+            },
+            Message::ConvertFilesStart(picked_files) => {
+                let Some(picked_files) = picked_files else {
+                    self.current_mode = CurrentMode::Start;
+                    return Task::none();
+                };
+
+                self.current_mode = CurrentMode::Converting;
+                self.file_queue = vec![];
+                for file in picked_files {
+                    if file.file_name().to_lowercase().ends_with(".pdf") {
+                        let impuls = ImpulsModel::build_from_path_buf(&file.into());
+                        self.file_queue.push(ImpulsFileType::Pdf(impuls));
+                    } else {
+                        let impuls_audio = AudioModel::build(file.into());
+                        self.file_queue.push(ImpulsFileType::Audio(impuls_audio));
+                    }
+
                 }
 
                 self.progress = 0;
@@ -150,14 +171,7 @@ impl MainView {
 
     fn view(&self) -> Element<Message> {
 
-        let title = container(
-            svg(
-                iced::widget::svg::Handle::from_memory(AssetImages::get("banner.svg").unwrap().data)
-            )
-            .width(Fill)
-        )
-            .max_height(150)
-            .center_x(Fill);
+        let title = file_banner::banner();
 
         match self.current_mode {
             CurrentMode::Start => {
@@ -167,11 +181,8 @@ impl MainView {
                             column![
                                 vertical_space().height(100),
                                 button(container(text("Impuls-PDF-Datei(en) auswählen")).center_x(Fill).center_y(Fill))
-                                    .on_press(Message::ConvertStart)
+                                    .on_press(Message::ConvertFileDialog)
                                     .height(100).width(500),
-                                // container(text("Oder Dateien in das Fenster ziehen"))
-                                //     .height(100).width(500)
-                                //     .center_x().center_y(),
                             ]
                         )
                     },
@@ -195,91 +206,60 @@ impl MainView {
     
                 let mut content = Column::new().align_x(Alignment::Center);
 
-                fn build_icon_default() -> Tooltip<'static, Message> {
-                    let handle_image_success = iced::widget::svg::Handle::from_memory(AssetImages::get("default.svg").unwrap().data);
-                    let svg_image_success = svg(handle_image_success).height(20).width(20);
-                    
-                    let tooltip_message = container(text("Verarbeitung ausstehend")).style(container::bordered_box);
-                    let image_success = tooltip(svg_image_success, tooltip_message, tooltip::Position::Left);
-                    image_success
-                }
+                for ift in &self.file_queue {
+                    match ift {
+                        ImpulsFileType::Audio(audio_model) => {
+                            let impuls_audio_name = text(audio_model.get_file_name()).align_x(Horizontal::Left).width(Fill);
+                            let impuls_audio_tip = tooltip(impuls_audio_name, text(audio_model.get_complete_path()), tooltip::Position::FollowCursor);
+                        
+                            let impuls_audio_state = match &audio_model.state {
+                                AudioConvertingState::Default => build_icon_default(),
+                                AudioConvertingState::Success => build_icon_audio_success(),
+                                AudioConvertingState::Failure(msg) => build_icon_audio_error(msg),
+                            };
 
-                fn build_icon_image_success() -> Tooltip<'static, Message> {
-                    let handle_image_success = iced::widget::svg::Handle::from_memory(AssetImages::get("image-success.svg").unwrap().data);
-                    let svg_image_success = svg(handle_image_success).height(20).width(20);
-                    
-                    let tooltip_message = container(text("Bild erfolgreich erstellt")).style(container::bordered_box);
-                    let image_success = tooltip(svg_image_success, tooltip_message, tooltip::Position::Left);
-                    image_success
-                }
+                            let r_i = row![impuls_audio_tip, impuls_audio_state].spacing(20);
 
-                fn build_icon_image_error(error_msg: &str) -> Tooltip<'static, Message> {
-                    let tooltip_message = format!("Bildumwandlung fehlerhaft! Fehler:\n{error_msg}");
-
-                    let handle_image_error = iced::widget::svg::Handle::from_memory(AssetImages::get("image-error.svg").unwrap().data);
-                    let svg_image_error = svg(handle_image_error).height(20).width(20);
-                    
-                    let tooltip_message = container(text(tooltip_message)).style(container::bordered_box);
-                    let image_error = tooltip(svg_image_error, tooltip_message, tooltip::Position::Left);
-                    image_error
-                }
-
-                fn build_icon_html_success() -> Tooltip<'static, Message> {
-                    let handle_html_success = iced::widget::svg::Handle::from_memory(AssetImages::get("html-success.svg").unwrap().data);
-                    let svg_html_success = svg(handle_html_success).height(20).width(20);
-                    
-                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text("Wordpress-Text erfolgreich erstellt")).style(container::bordered_box);
-                    let html_success = tooltip(svg_html_success, tooltip_message, tooltip::Position::Left);
-                    html_success
-                }
-
-                fn build_icon_html_error(error_msg: &str) -> Tooltip<'static, Message> {
-                    let tooltip_message = format!("Wordpress-Text konnte nicht erstellt werden! Fehler:\n{error_msg}");
-
-                    let handle_html_error = iced::widget::svg::Handle::from_memory(AssetImages::get("html-error.svg").unwrap().data);
-                    let svg_html_error = svg(handle_html_error).height(20).width(20);
-                    
-                    let tooltip_message: container::Container<Message, _, iced::Renderer> = container(text(tooltip_message)).style(container::bordered_box);
-                    let html_error: Tooltip<Message, _, iced::Renderer> =  tooltip(svg_html_error, tooltip_message, tooltip::Position::Left);
-                    html_error
-                }
-
-                for i in &self.pdfs {
-                    let impuls_name = text(&i.file_name).align_x(Horizontal::Left).width(Fill);
-                    let impuls_tip = tooltip(impuls_name, &*i.file_path, tooltip::Position::FollowCursor);
-
-                    let impuls_state_html = match &i.state_html {
-                        ImpulsConvertingState::Default => build_icon_default(),
-                        ImpulsConvertingState::Success => build_icon_html_success(),
-                        ImpulsConvertingState::Failure(msg) => build_icon_html_error(msg),
-                    };
-
-                    let impuls_state_image = match &i.state_image {
-                        ImpulsConvertingState::Default => build_icon_default(),
-                        ImpulsConvertingState::Success => build_icon_image_success(),
-                        ImpulsConvertingState::Failure(msg) => build_icon_image_error(msg),
-                    };
-
-                    let impuls_state_html: container::Container<_, _, _> = container(impuls_state_html).align_x(Horizontal::Center);
-                    let impuls_state_img = container(impuls_state_image).align_x(Horizontal::Right);
-
-                    let r_i = row![impuls_tip, impuls_state_html, impuls_state_img].spacing(20);
-                    
-                    content = content.push(r_i);
+                            content = content.push(r_i);
+                        },
+                        ImpulsFileType::Pdf(i) => {
+                            let impuls_name = text(&i.file_name).align_x(Horizontal::Left).width(Fill);
+                            let impuls_tip = tooltip(impuls_name, &*i.file_path, tooltip::Position::FollowCursor);
+        
+                            let impuls_state_html = match &i.state_html {
+                                ImpulsConvertingState::Default => build_icon_default(),
+                                ImpulsConvertingState::Success => build_icon_html_success(),
+                                ImpulsConvertingState::Failure(msg) => build_icon_html_error(msg),
+                            };
+        
+                            let impuls_state_image = match &i.state_image {
+                                ImpulsConvertingState::Default => build_icon_default(),
+                                ImpulsConvertingState::Success => build_icon_image_success(),
+                                ImpulsConvertingState::Failure(msg) => build_icon_image_error(msg),
+                            };
+        
+                            let impuls_state_html: container::Container<_, _, _> = container(impuls_state_html).align_x(Horizontal::Center);
+                            let impuls_state_img = container(impuls_state_image).align_x(Horizontal::Right);
+        
+                            let r_i = row![impuls_tip, impuls_state_html, impuls_state_img].spacing(20);
+                            
+                            content = content.push(r_i);
+                        },
+                    }
                 }
         
                 //control-row
                 let control_row = 
                     if matches!(self.current_mode, CurrentMode::Converting) {
                         row![
-                            progress_bar(0.0..=self.pdfs.len() as f32, self.progress as f32).width(Fill)
+                            progress_bar(0.0..=self.file_queue.len() as f32, self.progress as f32).width(Fill)
                         ].spacing(20).padding(20)
                     } 
                     else { 
                         row![
                             container(
                                 button("Neu umwandeln")
-                                    .on_press(Message::ConvertStart)
+                                    .on_press(Message::ConvertFileDialog)
                                     .style(button::secondary)
                             ).align_x(Horizontal::Left).width(Fill),
                             container(
@@ -298,6 +278,10 @@ impl MainView {
                     control_row,
                 ).into()
             }
+
+            CurrentMode::Locked => {
+                file_background::file_plus().into()
+            },
         }
     }
 
