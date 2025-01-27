@@ -1,3 +1,5 @@
+#![windows_subsystem = "windows"]
+
 pub mod ui;
 pub mod impuls;
 pub mod core;
