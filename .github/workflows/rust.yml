@@ -27,7 +27,9 @@ jobs:
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build release
-      run: cargo build --verbose --release
+      run: |
+        export LD_LIBRARY_PATH="./libs/lame/linux-x64:$LD_LIBRARY_PATH"
+        cargo build --verbose --release
     # - name: Run tests
     #   run:  cargo test --verbose
     - name: Upload binary
