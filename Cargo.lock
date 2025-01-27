@@ -3,20 +3,6 @@
 version = 4
 
 [[package]]
-name = "Impulsor-3000"
-version = "0.2.0"
-dependencies = [
- "iced",
- "image",
- "lame",
- "pdfium-render",
- "rfd",
- "rust-embed",
- "symphonia",
- "winres",
-]
-
-[[package]]
 name = "ab_glyph"
 version = "0.2.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2014,6 +2000,20 @@ name = "imgref"
 version = "1.11.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d0263a3d970d5c054ed9312c0057b4f3bde9c0b33836d3637361d4a9e6e7a408"
+
+[[package]]
+name = "impulsor3000"
+version = "0.2.1"
+dependencies = [
+ "iced",
+ "image",
+ "lame",
+ "pdfium-render",
+ "rfd",
+ "rust-embed",
+ "symphonia",
+ "winres",
+]
 
 [[package]]
 name = "indexmap"

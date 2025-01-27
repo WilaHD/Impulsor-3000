@@ -34,7 +34,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binary-linux
-        path: target/release/Impulsor-3000
+        path: target/release/impulsor3000
 
   build-windows-x64-binary:
 
@@ -59,7 +59,7 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: binary-windows
-        path: ./target/release/Impulsor-3000.exe
+        path: ./target/release/impulsor3000.exe
 
   build-linux-x64-appimage:
 
@@ -87,14 +87,14 @@ jobs:
       working-directory: ./installer/linux/appimage
       run: |
         bash setup.sh
-        ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor_3000-x86_64.AppDir --appimage-extract-and-run
-        mv Impulsor_3000-x86_64.AppImage Impulsor-3000-x86_64.AppImage
+        ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
+        mv Impulsor-3000-x86_64.AppImage Impulsor-3000_x86-64.AppImage
 
     - name: Upload AppImage
       uses: actions/upload-artifact@v4
       with:
         name: appimage-linux
-        path: ./installer/linux/appimage/Impulsor-3000-x86_64.AppImage
+        path: ./installer/linux/appimage/Impulsor-3000_x86-64.AppImage
 
   build-windows-x64-installer:
 
@@ -127,4 +127,4 @@ jobs:
       uses: actions/upload-artifact@v4
       with:
         name: installer-windows
-        path: ./installer/windows/Impulsor-3000_Installer.exe
+        path: ./installer/windows/impulsor3000_setup.exe

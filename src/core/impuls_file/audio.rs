@@ -52,10 +52,10 @@ fn convert(input_file: &str, output_file:&str) -> Result<(), Box<dyn std::error:
     std::env::set_var("LD_LIBRARY_PATH", "./libs/lame/linux-x64");
 
     #[cfg(target_os = "macos")]
-    std::env::set_var("DYLD_LIBRARY_PATH", "./libs/lame/windows-x64");
+    std::env::set_var("DYLD_LIBRARY_PATH", "./libs/lame/...");
 
     #[cfg(target_os = "windows")]
-    std::env::set_var("PATH", format!("{};{}", "./libs/lame/...", std::env::var("PATH").unwrap()));
+    std::env::set_var("PATH", format!("{};{}", "./libs/lame/windows-x64", std::env::var("PATH").unwrap()));
 
     // Open the input M4A file
     let file = File::open(input_file)?;

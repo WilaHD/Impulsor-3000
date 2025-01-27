@@ -1,12 +1,17 @@
 #! /bin/sh
 
-APPDIR="Impulsor_3000-x86_64.AppDir"
+APPDIR="Impulsor-3000-x86_64.AppDir"
 
-mkdir -p ${APPDIR}/pdfium/linux-x64
+mkdir -p ${APPDIR}/libs/lame/linux-x64
+mkdir -p ${APPDIR}/libs/pdfium/linux-x64
 
-cp ../../../pdfium/linux-x64/libpdfium.so   ${APPDIR}/pdfium/linux-x64/libpdfium.so
-cp ../../../target/release/Impulsor-3000    ${APPDIR}/Impulsor-3000
-cp ../../../imgs/logo.png                   ${APPDIR}/Impulsor-3000.png
+cp ../Impulsor-3000.desktop ${APPDIR}/Impulsor-3000.desktop 
+cp ../../../libs/lame/linux-x64/libmp3lame.so   ${APPDIR}/libs/lame/linux-x64/libmp3lame.so
+cp ../../../libs/pdfium/linux-x64/libpdfium.so  ${APPDIR}/libs/pdfium/linux-x64/libpdfium.so
+cp ../../../target/release/impulsor3000         ${APPDIR}/impulsor3000
+cp ../../../imgs/logo.png                       ${APPDIR}/impulsor3000.png
+cp run.sh                                       ${APPDIR}/run.sh
 
-chmod u+x ${APPDIR}/Impulsor-3000
-cd ${APPDIR} && ln -s ./Impulsor-3000 ./AppRun
+chmod u+x ${APPDIR}/impulsor3000
+chmod u+x ${APPDIR}/run.sh
+cd ${APPDIR} && ln -s ./run.sh ./AppRun

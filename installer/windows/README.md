@@ -4,7 +4,7 @@
 
 ## Run NSIS
 ```
-makensis.exe' /V4 .\script.nsi
+makensis.exe /V4 .\script.nsi
 ```
 
 ```

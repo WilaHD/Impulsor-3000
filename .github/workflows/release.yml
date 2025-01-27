@@ -26,5 +26,5 @@ jobs:
         path: ./appimage
     - uses: ncipollo/release-action@v1
       with:
-        artifacts: "./installer/Impulsor-3000_Installer.exe,./appimage/Impulsor-3000-x86_64.AppImage"
+        artifacts: "./installer/impulsor3000_setup.exe,./appimage/Impulsor-3000_x86-64.AppImage"
         bodyFile: ""

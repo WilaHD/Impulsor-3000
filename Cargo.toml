@@ -1,6 +1,6 @@
 [package]
-name = "Impulsor-3000"
-version = "0.2.0"
+name = "impulsor3000"
+version = "0.2.1"
 edition = "2021"
 build = "build.rs"
 exclude = ["archive"]

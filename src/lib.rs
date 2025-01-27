@@ -30,7 +30,7 @@ pub const TITLE:&str = r#"
 pub fn choose_pdfium_by_os_arch() -> Result<String, String> {
     let arch = std::env::consts::ARCH;
     let os = std::env::consts::OS;
-    let mut path = "./pdfium/".to_string();
+    let mut path = "libs/pdfium/".to_string();
 
     match os {
         "linux" => {

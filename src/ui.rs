@@ -11,7 +11,7 @@ pub mod file_icons;
 pub mod file_banner;
 
 use rfd::FileHandle;
-use Impulsor_3000::choose_pdfium_by_os_arch;
+use impulsor3000::choose_pdfium_by_os_arch;
 use file_icons::*;
 use crate::{core::impuls_file::audio::{AudioConvertingState, AudioModel}, impuls::{
     Impuls,

@@ -1,5 +1,24 @@
 # Change Log
 
+## v0.2.1 - 2025-01-XX
+
+### Added
+
+- Asynchronous file selector (prevents that gnome detects a frozen application)
+- Welcome screen
+- Lock screen while selecting files
+- Ability to convert m4a recordings (mostly from Whatsapp) into mp3 files
+
+### Changed
+
+- Updated libraries
+    - iced
+    - pdfium
+    - rfd
+    - ... and many more
+- Reorganized external libraries
+- Renamed build application into `impulsor3000(.exe)`
+
 ## v0.2.0 - 2024-06-09
 
 ### Added
