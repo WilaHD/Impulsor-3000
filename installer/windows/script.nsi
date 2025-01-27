@@ -26,7 +26,7 @@ var SM_Folder
 !system "bash -c 'mkdir ./install_dir/pdfium/win-x64'"
 !system "bash -c 'mkdir ./install_dir/pdfium/win-x64'"
 !system "bash -c 'cp ../../target/release/impulsor3000.exe ./install_dir/impulsor3000.exe'"
-!system "bash -c 'cp ../../libs/lame/windows-x64/libmp3lame.dll ./install_dir/libmp3lame.dll'"
+!system "bash -c 'cp ../../libs/lame/win-x64/libmp3lame.dll ./install_dir/libmp3lame.dll'"
 !system "bash -c 'cp ../../libs/pdfium/win-x64/pdfium.dll ./install_dir/pdfium/win-x64/pdfium.dll'"
 
 ######################################################################
