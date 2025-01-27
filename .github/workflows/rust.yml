@@ -26,6 +26,10 @@ jobs:
           ~/.cargo/git/db/
           target/
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+    - name: Install dependencies
+      run: |
+        sudo apt update
+        sudo apt install -y libmp3lame-dev
     - name: Build release
       run: |
         # Resolve the relative path to an absolute path
