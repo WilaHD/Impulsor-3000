@@ -28,7 +28,13 @@ jobs:
         key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
     - name: Build release
       run: |
-        export LD_LIBRARY_PATH="./libs/lame/linux-x64:$LD_LIBRARY_PATH"
+        # Resolve the relative path to an absolute path
+        export LIB_PATH="${{ github.workspace }}/libs/lame/linux-x64"
+        if [ ! -f "$LIB_PATH/libmp3lame.so" ]; then
+          echo "Error: libmp3lame.so not found in $LIB_PATH"
+          exit 1
+        fi
+        export LD_LIBRARY_PATH="$LIB_PATH:$LD_LIBRARY_PATH"
         cargo build --verbose --release
     # - name: Run tests
     #   run:  cargo test --verbose
