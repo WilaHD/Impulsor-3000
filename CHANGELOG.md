@@ -4,7 +4,8 @@
 
 ### Added
 
-- Ability to convert ogg recordings (mostly from Telegram) into mp3 files
+- Ability to convert ogg recordings (mostly from Telegram) and mp4 into mp3 files
+- Button to open input file
 
 ## v0.2.1 - 2025-01-27
 

@@ -71,3 +71,14 @@ pub fn build_icon_audio_error(error_msg: &str) -> Tooltip<'static, Message> {
     let html_error: Tooltip<Message, _, iced::Renderer> =  tooltip(svg_html_error, tooltip_message, tooltip::Position::Left);
     html_error
 }
+
+pub fn build_icon_file_search() -> Tooltip<'static, Message> {
+    let tooltip_message = format!("Datei in Verzeichnis anzeigen.");
+
+    let svg_handle = iced::widget::svg::Handle::from_memory(AssetImages::get("folder-search.svg").unwrap().data);
+    let svg = svg(svg_handle).height(20).width(20);
+    
+    let tooltip_styled: container::Container<Message, _, iced::Renderer> = container(text(tooltip_message)).style(container::bordered_box);
+    let icon_file_search: Tooltip<Message, _, iced::Renderer> =  tooltip(svg, tooltip_styled, tooltip::Position::Left);
+    icon_file_search
+}

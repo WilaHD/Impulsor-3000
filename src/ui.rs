@@ -2,7 +2,7 @@ use pdfium_render::prelude::* ;
 use iced::{ 
     alignment::Horizontal, widget::{
         button, column, container, horizontal_rule, progress_bar, row, scrollable, text, tooltip, vertical_space, Column
-    }, window, Alignment, Element, Fill, Task, Theme 
+    }, window, Alignment::{self, Center}, Element, Fill, Task, Theme 
 };
 
 pub mod file_assets;
@@ -39,6 +39,7 @@ pub enum Message {
     ConvertFilesStart(Option<Vec<FileHandle>>),
     ConvertNext,
     ConvertDone,
+    FindFile(String)
 }
 
 struct MainView {
@@ -133,7 +134,7 @@ impl MainView {
 
                 let picked_files_future = rfd::AsyncFileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
-                    .add_filter("Impuls.pdf / Audio.m4a / Audio.ogg", &extensions);
+                    .add_filter("Impuls (.pdf) / Audio (.m4a .ogg .mp3)", &extensions);
                 
                 return Task::perform(picked_files_future.pick_files(), Message::ConvertFilesStart);
 
@@ -173,6 +174,9 @@ impl MainView {
             },
             Message::Exit => {
                 return window::get_latest().and_then(window::close)
+            },
+            Message::FindFile(file_path) => {
+                let _ = opener::reveal(file_path);
             },
         }
 
@@ -214,7 +218,7 @@ impl MainView {
 
             CurrentMode::Default | CurrentMode::Converting => {
     
-                let mut content = Column::new().align_x(Alignment::Center);
+                let mut content = Column::new().align_x(Alignment::Center).spacing(2);
 
                 for ift in &self.file_queue {
                     match ift {
@@ -228,7 +232,14 @@ impl MainView {
                                 AudioConvertingState::Failure(msg) => build_icon_audio_error(msg),
                             };
 
-                            let r_i = row![impuls_audio_tip, impuls_audio_state].spacing(20);
+                            let find_file = container(
+                                button(build_icon_file_search())
+                                .on_press(Message::FindFile(audio_model.get_path_input_str()))
+                                .style(button::secondary)
+                                .width(25).height(25).padding(0)
+                            ).align_x(Horizontal::Right);
+
+                            let r_i = row![impuls_audio_tip, impuls_audio_state, find_file].spacing(20).align_y(Center);
 
                             content = content.push(r_i);
                         },
@@ -241,17 +252,24 @@ impl MainView {
                                 ImpulsConvertingState::Success => build_icon_html_success(),
                                 ImpulsConvertingState::Failure(msg) => build_icon_html_error(msg),
                             };
-        
+
                             let impuls_state_image = match &i.state_image {
                                 ImpulsConvertingState::Default => build_icon_default(),
                                 ImpulsConvertingState::Success => build_icon_image_success(),
                                 ImpulsConvertingState::Failure(msg) => build_icon_image_error(msg),
                             };
-        
+                            
                             let impuls_state_html: container::Container<_, _, _> = container(impuls_state_html).align_x(Horizontal::Center);
                             let impuls_state_img = container(impuls_state_image).align_x(Horizontal::Right);
+
+                            let find_file = container(
+                                button(build_icon_file_search())
+                                .on_press(Message::FindFile(i.file_path.replace(".txt", ".pdf").to_string()))
+                                .style(button::secondary)
+                                .width(25).height(25).padding(0)
+                            ).align_x(Horizontal::Right);
         
-                            let r_i = row![impuls_tip, impuls_state_html, impuls_state_img].spacing(20);
+                            let r_i = row![impuls_tip, impuls_state_html, impuls_state_img, find_file].spacing(20).align_y(Center);
                             
                             content = content.push(r_i);
                         },
@@ -262,7 +280,7 @@ impl MainView {
                         }
                     }
                 }
-        
+
                 //control-row
                 let control_row = 
                     if matches!(self.current_mode, CurrentMode::Converting) {

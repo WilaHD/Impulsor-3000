@@ -4,7 +4,7 @@ use lame::Lame;
 use symphonia::{core::{audio::{AudioBufferRef, Signal}, codecs::DecoderOptions, io::MediaSourceStream, meta::MetadataOptions}, default::{get_codecs, get_probe}};
 
 
-pub const SUPPORTED_AUDIO_TYPES: [&str; 2] = ["m4a", "ogg"];
+pub const SUPPORTED_AUDIO_TYPES: [&str; 3] = ["m4a", "ogg", "mp4"];
 
 
 #[derive(Debug, Clone, PartialEq, Eq)]
