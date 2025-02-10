@@ -1,52 +1,94 @@
-use std::{fs::File, io::{BufWriter, Write}, path::PathBuf};
+use std::{ffi::OsStr, fs::File, io::{BufWriter, Write}, os::unix::ffi::OsStrExt, path::PathBuf};
 
 use lame::Lame;
 use symphonia::{core::{audio::{AudioBufferRef, Signal}, codecs::DecoderOptions, io::MediaSourceStream, meta::MetadataOptions}, default::{get_codecs, get_probe}};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AudioConvertingState {
     Default,
     Success,
     Failure(String),
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+enum AudioInputFileType {
+    Unknown,
+    M4a,
+    Ogg,
+}
 
 pub struct AudioModel {
     pub state: AudioConvertingState,
-    path: PathBuf,
+    path_input: PathBuf,
+    path_output: PathBuf,
+    audio_file_type: AudioInputFileType,
 }
 
 impl AudioModel {
-    pub fn build(path: PathBuf) -> Self {
-        AudioModel {
+    pub fn build(path_input: PathBuf) -> Self {
+        let mut am = AudioModel {
             state: AudioConvertingState::Default,
-            path,
+            path_input: path_input.clone(),
+            path_output: path_input.clone(),
+            audio_file_type: AudioInputFileType::Unknown,
+        };
+        
+        match path_input.extension() {
+            Some(e) => {
+                am.audio_file_type = match e.to_str() {
+                    Some("ogg") => {
+                        am.path_output.set_extension("mp3");
+                        AudioInputFileType::Ogg
+                    },
+                    Some("m4a") => {
+                        am.path_output.set_extension("mp3");
+                        AudioInputFileType::M4a
+                    },
+                    _ => {
+                        am.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type"));
+                        AudioInputFileType::Unknown
+                    }
+                }
+            },
+            None => am.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type")),
         }
+
+        return am
     }
 
     pub fn get_file_name(&self) -> String {
-        self.path.file_name().unwrap().to_str().unwrap().to_string()
+        return self.path_input.file_name().unwrap_or(OsStr::from_bytes(b"unknown file name")).to_string_lossy().to_string();
     }
 
-    pub fn get_complete_path(&self) -> String {
-        self.path.as_os_str().to_str().unwrap().to_string()
+    pub fn get_path_input_str(&self) -> String {
+        return self.path_input.to_string_lossy().to_string()
+    }
+
+    pub fn get_path_output_str(&self) -> String {
+        return self.path_output.to_string_lossy().to_string()
     }
 
     pub fn convert(&mut self) {
-        let input_file = self.path.to_str().unwrap();
-        let output_file = &input_file.replace(".m4a", ".mp3");
-
-        match convert(input_file, output_file) {
-            Ok(_) => self.state = AudioConvertingState::Success,
-            Err(e) => {
-                self.state = AudioConvertingState::Failure(e.to_string())
-            },
-        } 
+        if self.state == AudioConvertingState::Default || self.state == AudioConvertingState::Success {
+            match self.audio_file_type {
+                AudioInputFileType::Unknown => {
+                    self.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type"))
+                },
+                AudioInputFileType::M4a | AudioInputFileType::Ogg => {
+                    match convert(&self.path_input, &self.path_output) {
+                        Ok(_) => self.state = AudioConvertingState::Success,
+                        Err(e) => {
+                            self.state = AudioConvertingState::Failure(e.to_string())
+                        },
+                    }
+                },
+            }
+        }
     }
 }
 
 
-fn convert(input_file: &str, output_file:&str) -> Result<(), Box<dyn std::error::Error>> {
+fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     // Add the directory containing the LAME library to the library path
     #[cfg(target_os = "linux")]
     std::env::set_var("LD_LIBRARY_PATH", "./libs/lame/linux-x64");
@@ -57,7 +99,7 @@ fn convert(input_file: &str, output_file:&str) -> Result<(), Box<dyn std::error:
     #[cfg(target_os = "windows")]
     std::env::set_var("PATH", format!("{};{}", "./libs/lame/win-x64", std::env::var("PATH").unwrap()));
 
-    // Open the input M4A file
+    // Open the input file
     let file = File::open(input_file)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());
 
@@ -125,6 +167,6 @@ fn convert(input_file: &str, output_file:&str) -> Result<(), Box<dyn std::error:
         .expect("LAME finalization failed");
     mp3_output.write_all(&mp3_buffer[..encoded_bytes])?;
 
-    println!("Conversion completed successfully: {} -> {}", input_file, output_file);
+    println!("Conversion completed successfully: {} -> {}", input_file.to_string_lossy(), output_file.to_string_lossy(),);
     Ok(())
 }

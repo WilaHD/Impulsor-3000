@@ -7,7 +7,7 @@
 - Asynchronous file selector (prevents that gnome detects a frozen application)
 - Welcome screen
 - Lock screen while selecting files
-- Ability to convert m4a recordings (mostly from Whatsapp) into mp3 files
+- Ability to convert m4a recordings (mostly from WhatsApp) into mp3 files
 
 ### Changed
 

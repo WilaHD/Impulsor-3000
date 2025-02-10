@@ -54,7 +54,7 @@ impl MainView {
             if self.progress < self.file_queue.len() {
                 match &mut self.file_queue[self.progress] {
                     ImpulsFileType::Audio(impuls_audio_model) => {
-                        println!("Convert Audio: {}", &impuls_audio_model.get_complete_path());
+                        println!("Convert Audio: {}", &impuls_audio_model.get_path_input_str());
                         impuls_audio_model.convert();
                     },
                     ImpulsFileType::Pdf(impuls_model) => {
@@ -128,7 +128,7 @@ impl MainView {
 
                 let picked_files_future = rfd::AsyncFileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
-                    .add_filter("Impuls.pdf / Audio.m4a", &["pdf", "m4a"]);
+                    .add_filter("Impuls.pdf / Audio.m4a", &["pdf", "m4a", "ogg"]);
                 
                 return Task::perform(picked_files_future.pick_files(), Message::ConvertFilesStart);
 
@@ -210,7 +210,7 @@ impl MainView {
                     match ift {
                         ImpulsFileType::Audio(audio_model) => {
                             let impuls_audio_name = text(audio_model.get_file_name()).align_x(Horizontal::Left).width(Fill);
-                            let impuls_audio_tip = tooltip(impuls_audio_name, text(audio_model.get_complete_path()), tooltip::Position::FollowCursor);
+                            let impuls_audio_tip = tooltip(impuls_audio_name, text(audio_model.get_path_input_str()), tooltip::Position::FollowCursor);
                         
                             let impuls_audio_state = match &audio_model.state {
                                 AudioConvertingState::Default => build_icon_default(),
