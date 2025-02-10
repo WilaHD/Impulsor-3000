@@ -133,7 +133,7 @@ impl MainView {
 
                 let picked_files_future = rfd::AsyncFileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
-                    .add_filter("Impuls.pdf / Audio.m4a", &extensions);
+                    .add_filter("Impuls.pdf / Audio.m4a / Audio.ogg", &extensions);
                 
                 return Task::perform(picked_files_future.pick_files(), Message::ConvertFilesStart);
 
