@@ -1,6 +1,6 @@
 # Change Log
 
-## v0.2.1 - 2025-01-27
+## v0.2.2 - 2025-02-10
 
 ### Added
 
@@ -24,6 +24,10 @@
     - ... and many more
 - Reorganized external libraries
 - Renamed build application into `impulsor3000(.exe)`
+
+### Fixed
+
+- AppImage runs now with just `./Impulsor-3000_x86-64.AppImage`
 
 ## v0.2.0 - 2024-06-09
 
