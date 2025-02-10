@@ -1,4 +1,4 @@
-use std::{ffi::OsStr, fs::File, io::{BufWriter, Write}, os::unix::ffi::OsStrExt, path::PathBuf};
+use std::{ffi::OsStr, fs::File, io::{BufWriter, Write}, path::PathBuf};
 
 use lame::Lame;
 use symphonia::{core::{audio::{AudioBufferRef, Signal}, codecs::DecoderOptions, io::MediaSourceStream, meta::MetadataOptions}, default::{get_codecs, get_probe}};
