@@ -19,6 +19,10 @@
 - Reorganized external libraries
 - Renamed build application into `impulsor3000(.exe)`
 
+### Fixed
+
+- AppImage runs now with just `./Impulsor-3000_x86-64.AppImage`
+
 ## v0.2.0 - 2024-06-09
 
 ### Added
