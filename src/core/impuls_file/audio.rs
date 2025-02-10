@@ -117,6 +117,15 @@ fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std
                     }
                 }
 
+                if left_channel.len() > right_channel.len() {
+                    right_channel = left_channel.clone();
+                } else if right_channel.len() > left_channel.len() {
+                    left_channel = right_channel.clone();
+                }
+                if right_channel.len() != left_channel.len() {
+                    return Err("Channels are not correct aligned".into());
+                }
+
                 // Encode the PCM data into MP3
                 let mut mp3_buffer = vec![0; 4096];
                 let encoded_bytes = lame_encoder
