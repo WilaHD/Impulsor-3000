@@ -3,6 +3,10 @@ use std::{ffi::OsStr, fs::File, io::{BufWriter, Write}, os::unix::ffi::OsStrExt,
 use lame::Lame;
 use symphonia::{core::{audio::{AudioBufferRef, Signal}, codecs::DecoderOptions, io::MediaSourceStream, meta::MetadataOptions}, default::{get_codecs, get_probe}};
 
+
+pub const SUPPORTED_AUDIO_TYPES: [&str; 2] = ["m4a", "ogg"];
+
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AudioConvertingState {
     Default,
@@ -10,50 +14,22 @@ pub enum AudioConvertingState {
     Failure(String),
 }
 
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum AudioInputFileType {
-    Unknown,
-    M4a,
-    Ogg,
-}
-
 pub struct AudioModel {
     pub state: AudioConvertingState,
     path_input: PathBuf,
     path_output: PathBuf,
-    audio_file_type: AudioInputFileType,
 }
 
 impl AudioModel {
     pub fn build(path_input: PathBuf) -> Self {
-        let mut am = AudioModel {
-            state: AudioConvertingState::Default,
-            path_input: path_input.clone(),
-            path_output: path_input.clone(),
-            audio_file_type: AudioInputFileType::Unknown,
-        };
-        
-        match path_input.extension() {
-            Some(e) => {
-                am.audio_file_type = match e.to_str() {
-                    Some("ogg") => {
-                        am.path_output.set_extension("mp3");
-                        AudioInputFileType::Ogg
-                    },
-                    Some("m4a") => {
-                        am.path_output.set_extension("mp3");
-                        AudioInputFileType::M4a
-                    },
-                    _ => {
-                        am.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type"));
-                        AudioInputFileType::Unknown
-                    }
-                }
-            },
-            None => am.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type")),
-        }
+        let mut path_output = path_input.clone();
+        path_output.set_extension("mp3");
 
-        return am
+        AudioModel {
+            state: AudioConvertingState::Default,
+            path_input,
+            path_output,
+        }
     }
 
     pub fn get_file_name(&self) -> String {
@@ -69,20 +45,11 @@ impl AudioModel {
     }
 
     pub fn convert(&mut self) {
-        if self.state == AudioConvertingState::Default || self.state == AudioConvertingState::Success {
-            match self.audio_file_type {
-                AudioInputFileType::Unknown => {
-                    self.state = AudioConvertingState::Failure(String::from("Unknown Audio Input File Type"))
-                },
-                AudioInputFileType::M4a | AudioInputFileType::Ogg => {
-                    match convert(&self.path_input, &self.path_output) {
-                        Ok(_) => self.state = AudioConvertingState::Success,
-                        Err(e) => {
-                            self.state = AudioConvertingState::Failure(e.to_string())
-                        },
-                    }
-                },
-            }
+        match convert(&self.path_input, &self.path_output) {
+            Ok(_) => self.state = AudioConvertingState::Success,
+            Err(e) => {
+                self.state = AudioConvertingState::Failure(e.to_string())
+            },
         }
     }
 }

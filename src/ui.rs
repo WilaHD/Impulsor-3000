@@ -13,7 +13,7 @@ pub mod file_banner;
 use rfd::FileHandle;
 use impulsor3000::choose_pdfium_by_os_arch;
 use file_icons::*;
-use crate::{core::impuls_file::audio::{AudioConvertingState, AudioModel}, impuls::{
+use crate::{core::impuls_file::audio::{AudioConvertingState, AudioModel, SUPPORTED_AUDIO_TYPES}, impuls::{
     Impuls,
     ImpulsConvertingState,
     ImpulsModel
@@ -75,6 +75,9 @@ impl MainView {
                             Err(e) => ImpulsConvertingState::Failure(e.to_string()),
                         };
                     },
+                    ImpulsFileType::Unknown(file) =>  {
+                        println!("Filetype for file '{file}' is not supported");
+                    }
                 }
                 
                 self.progress += 1;
@@ -125,10 +128,12 @@ impl MainView {
         match message {
             Message::ConvertFileDialog => {
                 self.current_mode = CurrentMode::Locked;
+                let mut extensions = vec!["pdf"];
+                extensions.extend(SUPPORTED_AUDIO_TYPES.iter());
 
                 let picked_files_future = rfd::AsyncFileDialog::new()
                     .set_title("Impuls PDF-Datei(en) auswählen")
-                    .add_filter("Impuls.pdf / Audio.m4a", &["pdf", "m4a", "ogg"]);
+                    .add_filter("Impuls.pdf / Audio.m4a", &extensions);
                 
                 return Task::perform(picked_files_future.pick_files(), Message::ConvertFilesStart);
 
@@ -142,14 +147,19 @@ impl MainView {
                 self.current_mode = CurrentMode::Converting;
                 self.file_queue = vec![];
                 for file in picked_files {
-                    if file.file_name().to_lowercase().ends_with(".pdf") {
-                        let impuls = ImpulsModel::build_from_path_buf(&file.into());
-                        self.file_queue.push(ImpulsFileType::Pdf(impuls));
-                    } else {
-                        let impuls_audio = AudioModel::build(file.into());
-                        self.file_queue.push(ImpulsFileType::Audio(impuls_audio));
+                    match file.path().extension().unwrap().to_str().unwrap() {
+                        "pdf" => {
+                            let impuls = ImpulsModel::build_from_path_buf(&file.into());
+                            self.file_queue.push(ImpulsFileType::Pdf(impuls));
+                        },
+                        x if SUPPORTED_AUDIO_TYPES.contains(&x) => {
+                            let impuls_audio = AudioModel::build(file.into());
+                            self.file_queue.push(ImpulsFileType::Audio(impuls_audio));
+                        },
+                        _ => {
+                            self.file_queue.push(ImpulsFileType::Unknown(file.path().extension().unwrap().to_str().unwrap().to_string()));
+                        }
                     }
-
                 }
 
                 self.progress = 0;
@@ -245,6 +255,11 @@ impl MainView {
                             
                             content = content.push(r_i);
                         },
+                        ImpulsFileType::Unknown(file) => {
+                            content = content.push(row![
+                                text(format!("Filetype for {file} is not supported!")).align_x(Horizontal::Left).width(Fill)
+                            ].spacing(20))
+                        }
                     }
                 }
         

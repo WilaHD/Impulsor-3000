@@ -5,5 +5,6 @@ use audio::AudioModel;
 
 pub enum ImpulsFileType {
     Audio(AudioModel),
-    Pdf(ImpulsModel)
+    Pdf(ImpulsModel),
+    Unknown(String),
 }

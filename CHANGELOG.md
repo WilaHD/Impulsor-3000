@@ -1,6 +1,12 @@
 # Change Log
 
-## v0.2.1 - 2025-01-XX
+## v0.2.1 - 2025-01-27
+
+### Added
+
+- Ability to convert ogg recordings (mostly from Telegram) into mp3 files
+
+## v0.2.1 - 2025-01-27
 
 ### Added
 
