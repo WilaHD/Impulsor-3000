@@ -33,7 +33,7 @@ impl AudioModel {
     }
 
     pub fn get_file_name(&self) -> String {
-        return self.path_input.file_name().unwrap_or(OsStr::from_bytes(b"unknown file name")).to_string_lossy().to_string();
+        return self.path_input.file_name().unwrap_or(OsStr::new("unknown")).to_string_lossy().to_string();
     }
 
     pub fn get_path_input_str(&self) -> String {
