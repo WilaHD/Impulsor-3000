@@ -12,7 +12,7 @@ Ein Werkzeug zur Umwandlung der eingereichten Impuls PDF-Dateien in Bilder und H
 
 - [:earth_africa: Webseite der Kirchgemeinden im Striegistal](https://kirchgemeinden-im-striegistal.de/)
 - [:newspaper: Telegram-Bot für den täglichen Impuls](https://t.me/tagesimpuls_bot)
-- [:newspaper: WhatsApp-Kanal für den täglichen Impuls](https://t.me/tagesimpuls_bot)
+- [:newspaper: WhatsApp-Kanal für den täglichen Impuls](https://whatsapp.com/channel/0029VarVA8AIyPtYcBrnFG1p)
 
 ## Neuigkeiten
 Alle Neuigkeiten und Veränderungen zu einer neuen Hauptversion des Programms können dem [Änderungsprotokoll](./CHANGELOG.md) entnommen werden.
