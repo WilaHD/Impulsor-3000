@@ -1,6 +1,12 @@
 use std::{collections::HashMap, fs::File};
 
-use pdfium_render::prelude::{PdfDocument, PdfiumError, PdfPageRenderRotation, Pdfium, PdfRenderConfig};
+use pdfium_render::prelude::{
+    PdfDocument, PdfPageRenderRotation, PdfRenderConfig, Pdfium, PdfiumError,
+};
+
+const PDF_FORM_FIELD_NAME_TEXT: &str = "Text Tagesimpuls";
+const PDF_FORM_FIELD_NAME_LOSUNG: &str = "Losung";
+const PDF_FORM_FIELD_NAME_AUTOR: &str = "Autor";
 
 pub struct ImpulsModel {
     pub state_html: ImpulsConvertingState,
@@ -21,7 +27,7 @@ impl ImpulsModel {
 }
 
 pub struct Impuls<'a> {
-    document_pdf: PdfDocument<'a>
+    document_pdf: PdfDocument<'a>,
 }
 
 #[derive(Debug, Clone)]
@@ -32,20 +38,24 @@ pub enum ImpulsConvertingState {
 }
 
 impl<'a> Impuls<'a> {
-    pub fn build_from_model(impuls_model: &ImpulsModel, pdfium: &'a Pdfium) -> Result<Impuls<'a>, PdfiumError> {
+    pub fn build_from_model(
+        impuls_model: &ImpulsModel,
+        pdfium: &'a Pdfium,
+    ) -> Result<Impuls<'a>, PdfiumError> {
         let im = impuls_model;
-        
+
         match pdfium.load_pdf_from_file(&im.file_path, None) {
-            Ok(document_pdf) => {
-                Ok(Impuls{
-                    document_pdf: document_pdf
-                })
-            }
+            Ok(document_pdf) => Ok(Impuls {
+                document_pdf: document_pdf,
+            }),
             Err(e) => return Err(e),
         }
     }
 
-    pub fn save_as_jpg(&self, impuls_model: &ImpulsModel) -> Result<(), Box<dyn std::error::Error>> {
+    pub fn save_as_jpg(
+        &self,
+        impuls_model: &ImpulsModel,
+    ) -> Result<(), Box<dyn std::error::Error>> {
         let file_path = impuls_model.file_path.replace(".pdf", ".jpg");
 
         let render_config = PdfRenderConfig::new()
@@ -54,8 +64,9 @@ impl<'a> Impuls<'a> {
             .rotate_if_landscape(PdfPageRenderRotation::Degrees90, true);
 
         let page_one = self.document_pdf.pages().get(0)?;
-    
-        page_one.render_with_config(&render_config)?
+
+        page_one
+            .render_with_config(&render_config)?
             .as_image()
             .into_rgb8()
             .save_with_format(file_path, image::ImageFormat::Jpeg)?;
@@ -63,8 +74,36 @@ impl<'a> Impuls<'a> {
         Ok(())
     }
 
-    pub fn save_as_txt(&self, impuls_model: &ImpulsModel) -> Result<(),Box<dyn std::error::Error>> {
+    pub fn save_as_txt(
+        &self,
+        impuls_model: &ImpulsModel,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        let form_values = self.read_form_field_values()?;
 
+        let wordpress_txt = form_values.get_wordpress_string();
+
+        let file_path = impuls_model.file_path.replace(".pdf", ".txt");
+        let mut file = File::create(file_path)?;
+
+        std::io::Write::write_all(&mut file, wordpress_txt.as_bytes())?;
+
+        Ok(())
+    }
+
+    pub fn test_pdf_form_fields(&self) -> Result<(), Vec<Box<dyn std::error::Error>>> {
+        return self
+            .read_form_field_values()
+            .map(|_| ())
+            .map_err(|err| vec![err]);
+    }
+
+    pub fn test_pdf_form_fields_as_str(&self) -> Result<(), Vec<String>> {
+        return self
+            .test_pdf_form_fields()
+            .map_err(|errs| errs.iter().map(|err| err.to_string()).collect());
+    }
+
+    fn read_form_field_values(&self) -> Result<PdfFormValues, Box<dyn std::error::Error>> {
         let mut map_pdf = HashMap::new();
 
         if let Some(form) = self.document_pdf.form() {
@@ -80,9 +119,9 @@ impl<'a> Impuls<'a> {
         let map_pdf = map_pdf;
 
         let Some(Some(pdf_losung)) = map_pdf.get("Losung") else {
-            return Err("PDF field 'Losung' not found".into())
+            return Err("PDF field 'Losung' not found".into());
         };
-        
+
         let pdf_losung_vec = if pdf_losung.contains("\r\n") {
             pdf_losung.split("\r\n\r\n").collect::<Vec<&str>>()
         } else if pdf_losung.contains("\r\r") {
@@ -104,11 +143,6 @@ impl<'a> Impuls<'a> {
         let pdf_losung_at = pdf_losung_at.trim();
         let pdf_losung_nt = pdf_losung_nt.trim();
 
-        
-        // let Some(Some(pdf_wochentag)) = map_pdf.get("Wochentag") else {
-        //     panic!("PDF field 'Wochentag' not found");
-        // };
-
         let Some(Some(pdf_text)) = map_pdf.get("Text Tagesimpuls") else {
             return Err("PDF field 'Text Tagesimpuls' not found".into());
         };
@@ -119,8 +153,26 @@ impl<'a> Impuls<'a> {
         };
         let pdf_autor = pdf_autor.trim();
 
-        let wordpress_txt = format!(
-r#"<strong>Losung</strong>
+        return Ok(PdfFormValues {
+            losung_at: pdf_losung_at.to_string(),
+            losung_nt: pdf_losung_nt.to_string(),
+            text: pdf_text.to_string(),
+            autor: pdf_autor.to_string(),
+        });
+    }
+}
+
+struct PdfFormValues {
+    pub losung_at: String,
+    pub losung_nt: String,
+    pub text: String,
+    pub autor: String,
+}
+
+impl PdfFormValues {
+    fn get_wordpress_string(&self) -> String {
+        return format!(
+            r#"<strong>Losung</strong>
 {}
 
 <strong>Lehrtext</strong>
@@ -132,13 +184,7 @@ r#"<strong>Losung</strong>
 {}
 
 [audio mp3 = "https://URL[...].mp3"]"#,
-        pdf_losung_at, pdf_losung_nt, pdf_text, pdf_autor);
-
-        let file_path = impuls_model.file_path.replace(".pdf", ".txt");
-        let mut file = File::create(file_path)?;
-        
-        std::io::Write::write_all(&mut file, wordpress_txt.as_bytes())?;
-
-        Ok(())
+            self.losung_at, self.losung_nt, self.text, self.autor
+        );
     }
 }

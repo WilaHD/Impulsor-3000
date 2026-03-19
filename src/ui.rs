@@ -34,6 +34,12 @@ pub enum CurrentMode {
     Locked,
     Default,
     Converting,
+    Settings(CurrentModeSettings),
+}
+
+enum CurrentModeSettings {
+    None,
+    ShowTemplateValidationResults(Vec<Result<(), Vec<String>>>),
 }
 
 #[derive(Debug, Clone)]
@@ -44,6 +50,14 @@ pub enum Message {
     ConvertNext,
     ConvertDone,
     FindFile(String),
+    Settings(MessageSettings),
+}
+
+#[derive(Debug, Clone)]
+enum MessageSettings {
+    None,
+    TestTemplateFileDialog,
+    TestTemplateValidate(Option<Vec<FileHandle>>),
 }
 
 struct MainView {
@@ -188,6 +202,71 @@ impl MainView {
             Message::FindFile(file_path) => {
                 let _ = opener::reveal(file_path);
             }
+            Message::Settings(message) => match &message {
+                MessageSettings::None => {
+                    self.current_mode = CurrentMode::Settings(CurrentModeSettings::None);
+                }
+                MessageSettings::TestTemplateFileDialog => {
+                    self.current_mode = CurrentMode::Locked;
+                    let extensions = vec!["pdf"];
+
+                    let picked_files_future = rfd::AsyncFileDialog::new()
+                        .set_title("Impuls-PDF-Vorlage(n) auswählen")
+                        .add_filter("Impuls (.pdf)", &extensions);
+
+                    return Task::perform(picked_files_future.pick_files(), |picked_templates| {
+                        Message::Settings(MessageSettings::TestTemplateValidate(picked_templates))
+                    });
+                }
+                MessageSettings::TestTemplateValidate(picked_templates) => {
+                    let Some(picked_templates) = picked_templates else {
+                        self.current_mode = CurrentMode::Settings(CurrentModeSettings::None);
+                        return Task::none();
+                    };
+
+                    let mut results: Vec<Result<(), Vec<String>>> = vec![];
+
+                    for template in picked_templates {
+                        match template.path().extension().unwrap().to_str().unwrap() {
+                            "pdf" => {
+                                let impuls_template_model =
+                                    ImpulsModel::build_from_path_buf(&template.into());
+
+                                match &self.pdfium {
+                                    PdfiumLibState::Ok(pdfium) => {
+                                        if let Ok(impuls_template) =
+                                            Impuls::build_from_model(&impuls_template_model, pdfium)
+                                        {
+                                            let template_test_result =
+                                                impuls_template.test_pdf_form_fields_as_str();
+                                            results.push(template_test_result);
+                                        }
+                                    }
+                                    PdfiumLibState::NotFound(err) => {
+                                        results.push(Err(vec![err.to_string()]))
+                                    }
+                                }
+                            }
+                            _ => {
+                                let file_name = template
+                                    .path()
+                                    .extension()
+                                    .unwrap()
+                                    .to_str()
+                                    .unwrap()
+                                    .to_string();
+                                results.push(Err(vec![format!(
+                                    "filetype of file {file_name} is unknown"
+                                )]));
+                            }
+                        }
+                    }
+
+                    self.current_mode = CurrentMode::Settings(
+                        CurrentModeSettings::ShowTemplateValidationResults(results),
+                    )
+                }
+            },
         }
 
         Task::none()
@@ -196,20 +275,27 @@ impl MainView {
     fn view(&self) -> Element<'_, Message> {
         let title = file_banner::banner();
 
-        match self.current_mode {
+        match &self.current_mode {
             CurrentMode::Start => {
                 let content = match &self.pdfium {
-                    PdfiumLibState::Ok(_) => container(column![
-                        vertical_space().height(100),
-                        button(
-                            container(text("Impuls-PDF-Datei(en) auswählen"))
-                                .center_x(Fill)
-                                .center_y(Fill)
-                        )
-                        .on_press(Message::ConvertFileDialog)
-                        .height(100)
-                        .width(500),
-                    ]),
+                    PdfiumLibState::Ok(_) => container(
+                        column![
+                            vertical_space().height(100),
+                            button(
+                                container(text("Impuls-PDF-Datei(en) auswählen"))
+                                    .center_x(Fill)
+                                    .center_y(Fill)
+                            )
+                            .on_press(Message::ConvertFileDialog)
+                            .height(100)
+                            .width(500),
+                            button(text("Einstellungen").center())
+                                .on_press(Message::Settings(MessageSettings::None))
+                                .width(500)
+                                .style(button::secondary)
+                        ]
+                        .spacing(20),
+                    ),
                     PdfiumLibState::NotFound(error_msg) => container(text(error_msg)),
                 };
 
@@ -355,6 +441,35 @@ impl MainView {
             }
 
             CurrentMode::Locked => file_background::file_plus().into(),
+
+            CurrentMode::Settings(mode) => match &mode {
+                CurrentModeSettings::None => column![
+                    title,
+                    container(
+                        column![
+                            text("Einstellungen").size(24),
+                            horizontal_rule(1),
+                            row![
+                                text("Impuls-PDF-Vorlage(n) testen").width(300),
+                                button(text(">")).on_press(Message::Settings(
+                                    MessageSettings::TestTemplateFileDialog
+                                ))
+                            ]
+                            .spacing(20)
+                            .align_y(Center)
+                        ]
+                        .spacing(20)
+                        .align_x(Horizontal::Center)
+                    )
+                    .width(Fill)
+                    .height(Fill)
+                ]
+                .align_x(Alignment::Center)
+                .into(),
+                CurrentModeSettings::ShowTemplateValidationResults(results) => {
+                    text(format!("{:#?}", &results)).into()
+                }
+            },
         }
     }
 
