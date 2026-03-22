@@ -319,7 +319,11 @@ impl MainView {
                             button(text("Einstellungen").center())
                                 .on_press(Message::Settings(MessageSettings::None))
                                 .width(500)
-                                .style(button::secondary)
+                                .style(button::secondary),
+                            button(text("Beenden").center())
+                                .on_press(Message::Exit)
+                                .width(500)
+                                .style(button::secondary),
                         ]
                         .spacing(20),
                     ),
