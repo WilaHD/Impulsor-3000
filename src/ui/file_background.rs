@@ -2,9 +2,8 @@ use iced::widget::svg;
 use iced::{widget::container, Alignment, Length::Fill};
 
 use super::file_assets::AssetImages;
-use super::Message;
 
-pub fn file_plus() -> container::Container<'static, Message> {
+pub fn file_plus<Message: 'static>() -> container::Container<'static, Message> {
     container(
         container(
             svg(iced::widget::svg::Handle::from_memory(

@@ -1,11 +1,22 @@
-use std::{ffi::OsStr, fs::File, io::{BufWriter, Write}, path::PathBuf};
+use std::{
+    ffi::OsStr,
+    fs::File,
+    io::{BufWriter, Write},
+    path::PathBuf,
+};
 
 use lame::Lame;
-use symphonia::{core::{audio::{AudioBufferRef, Signal}, codecs::DecoderOptions, io::MediaSourceStream, meta::MetadataOptions}, default::{get_codecs, get_probe}};
-
+use symphonia::{
+    core::{
+        audio::{AudioBufferRef, Signal},
+        codecs::DecoderOptions,
+        io::MediaSourceStream,
+        meta::MetadataOptions,
+    },
+    default::{get_codecs, get_probe},
+};
 
 pub const SUPPORTED_AUDIO_TYPES: [&str; 3] = ["m4a", "ogg", "mp4"];
-
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum AudioConvertingState {
@@ -33,29 +44,31 @@ impl AudioModel {
     }
 
     pub fn get_file_name(&self) -> String {
-        return self.path_input.file_name().unwrap_or(OsStr::new("unknown")).to_string_lossy().to_string();
+        return self
+            .path_input
+            .file_name()
+            .unwrap_or(OsStr::new("unknown"))
+            .to_string_lossy()
+            .to_string();
     }
 
     pub fn get_path_input_str(&self) -> String {
-        return self.path_input.to_string_lossy().to_string()
+        return self.path_input.to_string_lossy().to_string();
     }
 
     pub fn get_path_output_str(&self) -> String {
-        return self.path_output.to_string_lossy().to_string()
+        return self.path_output.to_string_lossy().to_string();
     }
 
     pub fn convert(&mut self) {
         match convert(&self.path_input, &self.path_output) {
             Ok(_) => self.state = AudioConvertingState::Success,
-            Err(e) => {
-                self.state = AudioConvertingState::Failure(e.to_string())
-            },
+            Err(e) => self.state = AudioConvertingState::Failure(e.to_string()),
         }
     }
 }
 
-
-fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std::error::Error>> {
+fn convert(input_file: &PathBuf, output_file: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
     // Add the directory containing the LAME library to the library path
     #[cfg(target_os = "linux")]
     std::env::set_var("LD_LIBRARY_PATH", "./libs/lame/linux-x64");
@@ -64,7 +77,14 @@ fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std
     std::env::set_var("DYLD_LIBRARY_PATH", "./libs/lame/...");
 
     #[cfg(target_os = "windows")]
-    std::env::set_var("PATH", format!("{};{}", "./libs/lame/win-x64", std::env::var("PATH").unwrap()));
+    std::env::set_var(
+        "PATH",
+        format!(
+            "{};{}",
+            "./libs/lame/win-x64",
+            std::env::var("PATH").unwrap()
+        ),
+    );
 
     // Open the input file
     let file = File::open(input_file)?;
@@ -73,7 +93,12 @@ fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std
     // Probe the format of the input file
     let probe = get_probe();
     let mut format = probe
-        .format(&Default::default(), mss, &Default::default(), &MetadataOptions::default())?
+        .format(
+            &Default::default(),
+            mss,
+            &Default::default(),
+            &MetadataOptions::default(),
+        )?
         .format;
 
     // Find the default audio track
@@ -91,7 +116,9 @@ fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std
     lame_encoder
         .set_sample_rate(codec_params.sample_rate.ok_or("Missing sample rate")?)
         .expect("Failed to set sample rate");
-    lame_encoder.init_params().expect("Failed to initialize LAME encoder");
+    lame_encoder
+        .init_params()
+        .expect("Failed to initialize LAME encoder");
 
     // Process packets and convert to MP3
     while let Ok(packet) = format.next_packet() {
@@ -143,6 +170,10 @@ fn convert(input_file: &PathBuf, output_file:&PathBuf) -> Result<(), Box<dyn std
         .expect("LAME finalization failed");
     mp3_output.write_all(&mp3_buffer[..encoded_bytes])?;
 
-    println!("Conversion completed successfully: {} -> {}", input_file.to_string_lossy(), output_file.to_string_lossy(),);
+    println!(
+        "Conversion completed successfully: {} -> {}",
+        input_file.to_string_lossy(),
+        output_file.to_string_lossy(),
+    );
     Ok(())
 }

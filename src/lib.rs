@@ -1,10 +1,10 @@
-pub const TITLE:&str = r#"
-.___                         .__                        ________  _______   _______   _______   
-|   |  _____  ______   __ __ |  |    ______ ____ _______\_____  \ \   _  \  \   _  \  \   _  \  
-|   | /     \ \____ \ |  |  \|  |   /  ___//  _ \\_  __ \ _(__  < /  /_\  \ /  /_\  \ /  /_\  \ 
+pub const TITLE: &str = r#"
+.___                         .__                        ________  _______   _______   _______
+|   |  _____  ______   __ __ |  |    ______ ____ _______\_____  \ \   _  \  \   _  \  \   _  \
+|   | /     \ \____ \ |  |  \|  |   /  ___//  _ \\_  __ \ _(__  < /  /_\  \ /  /_\  \ /  /_\  \
 |   ||  Y Y  \|  |_> >|  |  /|  |__ \___ \(  <_> )|  | \//       \\  \_/   \\  \_/   \\  \_/   \
 |___||__|_|  /|   __/ |____/ |____//____  >\____/ |__|  /______  / \_____  / \_____  / \_____  /
-           \/ |__|                      \/                     \/        \/        \/        \/ 
+           \/ |__|                      \/                     \/        \/        \/        \/
 "#;
 
 // pub struct Impuls<'a> {
@@ -14,7 +14,7 @@ pub const TITLE:&str = r#"
 
 // impl<'a> Impuls<'a> {
 //     pub fn build(file_path: String, pdfium: &'a Pdfium) -> Result<Impuls,PdfiumError> {
-        
+
 //         match pdfium.load_pdf_from_file(&file_path, None) {
 //             Ok(document_pdf) => {
 //                 Ok(Impuls {
@@ -36,12 +36,8 @@ pub fn choose_pdfium_by_os_arch() -> Result<String, String> {
         "linux" => {
             path += "linux-";
             match arch {
-                "x86_64" => {
-                    path += "x64"
-                },
-                "aarch64" => {
-                    path += "arm64"
-                },
+                "x86_64" => path += "x64",
+                "aarch64" => path += "arm64",
                 _ => {
                     return Err(format!("Architecture {arch} is not supported"));
                 }
@@ -50,12 +46,8 @@ pub fn choose_pdfium_by_os_arch() -> Result<String, String> {
         "windows" => {
             path += "win-";
             match arch {
-                "x86_64" => {
-                    path += "x64"
-                },
-                "aarch64" => {
-                    path += "arm64"
-                },
+                "x86_64" => path += "x64",
+                "aarch64" => path += "arm64",
                 _ => {
                     return Err(format!("Architecture {arch} is not supported"));
                 }
