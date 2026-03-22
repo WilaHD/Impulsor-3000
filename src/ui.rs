@@ -37,13 +37,20 @@ pub enum CurrentMode {
     Settings(CurrentModeSettings),
 }
 
-enum CurrentModeSettings {
+#[derive(Debug, PartialEq)]
+pub struct TemplateValidationResult {
+    template_file: String,
+    result: Result<(), Vec<String>>,
+}
+
+pub enum CurrentModeSettings {
     None,
-    ShowTemplateValidationResults(Vec<Result<(), Vec<String>>>),
+    ShowTemplateValidationResults(Vec<TemplateValidationResult>),
 }
 
 #[derive(Debug, Clone)]
 pub enum Message {
+    GoToWelcome,
     Exit,
     ConvertFileDialog,
     ConvertFilesStart(Option<Vec<FileHandle>>),
@@ -54,7 +61,7 @@ pub enum Message {
 }
 
 #[derive(Debug, Clone)]
-enum MessageSettings {
+pub enum MessageSettings {
     None,
     TestTemplateFileDialog,
     TestTemplateValidate(Option<Vec<FileHandle>>),
@@ -147,6 +154,9 @@ impl MainView {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::GoToWelcome => {
+                self.current_mode = CurrentMode::Start;
+            }
             Message::ConvertFileDialog => {
                 self.current_mode = CurrentMode::Locked;
                 let mut extensions = vec!["pdf"];
@@ -224,9 +234,14 @@ impl MainView {
                         return Task::none();
                     };
 
-                    let mut results: Vec<Result<(), Vec<String>>> = vec![];
+                    let mut results = vec![];
 
                     for template in picked_templates {
+                        let mut tvr: TemplateValidationResult = TemplateValidationResult {
+                            template_file: "unknown file".to_string(),
+                            result: Err(vec!["unknown file".to_string()]),
+                        };
+
                         match template.path().extension().unwrap().to_str().unwrap() {
                             "pdf" => {
                                 let impuls_template_model =
@@ -239,11 +254,18 @@ impl MainView {
                                         {
                                             let template_test_result =
                                                 impuls_template.test_pdf_form_fields_as_str();
-                                            results.push(template_test_result);
+
+                                            tvr = TemplateValidationResult {
+                                                template_file: impuls_template_model.file_path,
+                                                result: template_test_result,
+                                            };
                                         }
                                     }
                                     PdfiumLibState::NotFound(err) => {
-                                        results.push(Err(vec![err.to_string()]))
+                                        tvr = TemplateValidationResult {
+                                            template_file: impuls_template_model.file_path,
+                                            result: Err(vec![err.to_string()]),
+                                        };
                                     }
                                 }
                             }
@@ -255,11 +277,16 @@ impl MainView {
                                     .to_str()
                                     .unwrap()
                                     .to_string();
-                                results.push(Err(vec![format!(
-                                    "filetype of file {file_name} is unknown"
-                                )]));
+                                tvr = TemplateValidationResult {
+                                    template_file: file_name.clone(),
+                                    result: Err(vec![format!(
+                                        "filetype of file {file_name} is unknown"
+                                    )]),
+                                };
                             }
                         }
+
+                        results.push(tvr);
                     }
 
                     self.current_mode = CurrentMode::Settings(
@@ -414,12 +441,15 @@ impl MainView {
                     .padding(20)
                 } else {
                     row![
-                        container(
+                        row![
                             button("Neu umwandeln")
                                 .on_press(Message::ConvertFileDialog)
+                                .style(button::secondary),
+                            button("Zurück")
+                                .on_press(Message::GoToWelcome)
                                 .style(button::secondary)
-                        )
-                        .align_x(Horizontal::Left)
+                        ]
+                        .spacing(20)
                         .width(Fill),
                         container(button("Beenden").on_press(Message::Exit))
                             .align_x(Horizontal::Right)
@@ -456,7 +486,11 @@ impl MainView {
                                 ))
                             ]
                             .spacing(20)
-                            .align_y(Center)
+                            .align_y(Center),
+                            horizontal_rule(1),
+                            button("zurück")
+                                .style(button::secondary)
+                                .on_press(Message::GoToWelcome)
                         ]
                         .spacing(20)
                         .align_x(Horizontal::Center)
@@ -466,8 +500,37 @@ impl MainView {
                 ]
                 .align_x(Alignment::Center)
                 .into(),
-                CurrentModeSettings::ShowTemplateValidationResults(results) => {
-                    text(format!("{:#?}", &results)).into()
+                CurrentModeSettings::ShowTemplateValidationResults(tvrs) => {
+                    let mut content = column![].spacing(20);
+                    for tvr in tvrs {
+                        content = content.push(text(format!("{}\n", tvr.template_file)));
+                        content = match &tvr.result {
+                            Ok(_) => content.push(text("BESTANDEN")),
+                            Err(err) => content.push(text(format!(
+                                "FEHLER\n{}",
+                                err.iter()
+                                    .map(|s| format!(" - {s}\n"))
+                                    .collect::<Vec<String>>()
+                                    .join("")
+                            ))),
+                        };
+                        if tvr != tvrs.last().unwrap() {
+                            content = content.push(horizontal_rule(1))
+                        }
+                    }
+
+                    column![
+                        title,
+                        text("Testergebnisse").size(24),
+                        horizontal_rule(1),
+                        scrollable(content),
+                        button(text("zurück").center())
+                            .style(button::secondary)
+                            .on_press(Message::Settings(MessageSettings::None))
+                    ]
+                    .spacing(20)
+                    .align_x(Center)
+                    .into()
                 }
             },
         }
