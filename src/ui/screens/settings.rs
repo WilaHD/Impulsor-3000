@@ -99,6 +99,7 @@ impl State {
                             .on_press(Message::GoToWelcome)
                     ]
                     .spacing(20)
+                    .padding(50)
                     .align_x(Center)
                 )
             ]
@@ -135,6 +136,7 @@ impl State {
                         .on_press(Message::ShowOverview)
                 ]
                 .spacing(20)
+                .padding(50)
                 .align_x(Center)
                 .into()
             }
