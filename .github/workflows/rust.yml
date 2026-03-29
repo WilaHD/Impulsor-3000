@@ -2,141 +2,135 @@ name: Rust
 
 on:
   push:
-    branches: [ "main", "develop" ]
+    branches: ["main", "develop"]
   pull_request:
-    branches: [ "main", "develop" ]
-  workflow_call: 
+    branches: ["main", "develop"]
+  workflow_call:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
   build-linux-x64-binary:
-
-    runs-on: ubuntu-20.04
+    runs-on: ubuntu-24.04
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - name: Install dependencies
-      run: |
-        sudo apt update
-        sudo apt install -y libmp3lame-dev
-    - name: Build release
-      run: |
-        # Resolve the relative path to an absolute path
-        export LIB_PATH="${{ github.workspace }}/libs/lame/linux-x64"
-        if [ ! -f "$LIB_PATH/libmp3lame.so" ]; then
-          echo "Error: libmp3lame.so not found in $LIB_PATH"
-          exit 1
-        fi
-        export LD_LIBRARY_PATH="$LIB_PATH:$LD_LIBRARY_PATH"
-        cargo build --verbose --release
-    # - name: Run tests
-    #   run:  cargo test --verbose
-    - name: Upload binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: binary-linux
-        path: target/release/impulsor3000
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Install dependencies
+        run: |
+          sudo apt update
+          sudo apt install -y libmp3lame-dev
+      - name: Build release
+        run: |
+          # Resolve the relative path to an absolute path
+          export LIB_PATH="${{ github.workspace }}/libs/lame/linux-x64"
+          if [ ! -f "$LIB_PATH/libmp3lame.so" ]; then
+            echo "Error: libmp3lame.so not found in $LIB_PATH"
+            exit 1
+          fi
+          export LD_LIBRARY_PATH="$LIB_PATH:$LD_LIBRARY_PATH"
+          cargo build --verbose --release
+      # - name: Run tests
+      #   run:  cargo test --verbose
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-linux
+          path: target/release/impulsor3000
 
   build-windows-x64-binary:
-
-    runs-on: windows-latest
+    runs-on: windows-2025
 
     steps:
-    - uses: actions/checkout@v4
-    - uses: actions/cache@v4
-      with:
-        path: |
-          ~/.cargo/bin/
-          ~/.cargo/registry/index/
-          ~/.cargo/registry/cache/
-          ~/.cargo/git/db/
-          target/
-        key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
-    - name: Build release
-      run: cargo build --verbose --release
-    # - name: Run tests
-    #   run:  cargo test --verbose
-    - name: Upload binary
-      uses: actions/upload-artifact@v4
-      with:
-        name: binary-windows
-        path: ./target/release/impulsor3000.exe
+      - uses: actions/checkout@v4
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build release
+        run: cargo build --verbose --release
+      # - name: Run tests
+      #   run:  cargo test --verbose
+      - name: Upload binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: binary-windows
+          path: ./target/release/impulsor3000.exe
 
   build-linux-x64-appimage:
-
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     needs: build-linux-x64-binary
 
     steps:
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
-    - uses: actions/download-artifact@v4
-      with:
-        run-id: build-linux-x64-binary
-        name: binary-linux
-        path: ./target/release
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-linux
+          path: ./target/release
 
-    - name: Install AppImageTool
-      run: |
-        sudo apt update && sudo apt install wget file desktop-file-utils -y
-        wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
-        chmod +x ./appimagetool-x86_64.AppImage
-        mv ./appimagetool-x86_64.AppImage ./installer/linux/appimage/appimagetool-x86_64.AppImage
+      - name: Install AppImageTool
+        run: |
+          sudo apt update && sudo apt install wget file desktop-file-utils -y
+          wget https://github.com/AppImage/appimagetool/releases/download/continuous/appimagetool-x86_64.AppImage
+          chmod +x ./appimagetool-x86_64.AppImage
+          mv ./appimagetool-x86_64.AppImage ./installer/linux/appimage/appimagetool-x86_64.AppImage
 
-    - name: Build AppImage
-      working-directory: ./installer/linux/appimage
-      run: |
-        bash setup.sh
-        ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
-        mv Impulsor-3000-x86_64.AppImage Impulsor-3000_x86-64.AppImage
+      - name: Build AppImage
+        working-directory: ./installer/linux/appimage
+        run: |
+          bash setup.sh
+          ARCH=x86_64 ./appimagetool-x86_64.AppImage Impulsor-3000-x86_64.AppDir --appimage-extract-and-run
+          mv Impulsor-3000-x86_64.AppImage Impulsor-3000_x86-64.AppImage
 
-    - name: Upload AppImage
-      uses: actions/upload-artifact@v4
-      with:
-        name: appimage-linux
-        path: ./installer/linux/appimage/Impulsor-3000_x86-64.AppImage
+      - name: Upload AppImage
+        uses: actions/upload-artifact@v4
+        with:
+          name: appimage-linux
+          path: ./installer/linux/appimage/Impulsor-3000_x86-64.AppImage
 
   build-windows-x64-installer:
-
-    runs-on: windows-latest
+    runs-on: windows-2025
     needs: build-windows-x64-binary
 
     steps:
-    - name: Install NSIS
-      run: |
-        iwr -useb get.scoop.sh -outfile 'install.ps1'
-        .\install.ps1 -RunAsAdmin
-        scoop update
-        scoop bucket add extras
-        scoop install nsis
-    
-    - uses: actions/checkout@v4
-      with:
-        lfs: true
-    - uses: actions/download-artifact@v4
-      with:
-        run-id: build-windows-x64-binary
-        name: binary-windows
-        path: ./target/release
+      - name: Install NSIS
+        run: |
+          iwr -useb get.scoop.sh -outfile 'install.ps1'
+          .\install.ps1 -RunAsAdmin
+          scoop update
+          scoop bucket add extras
+          scoop install nsis
 
-    - name: Build installer
-      working-directory: ./installer/windows
-      run: makensis.exe /V4 .\script.nsi      
-    
-    - name: Upload installer
-      uses: actions/upload-artifact@v4
-      with:
-        name: installer-windows
-        path: ./installer/windows/impulsor3000_setup.exe
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+      - uses: actions/download-artifact@v4
+        with:
+          name: binary-windows
+          path: ./target/release
+
+      - name: Build installer
+        working-directory: ./installer/windows
+        run: makensis.exe /V4 .\script.nsi
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: installer-windows
+          path: ./installer/windows/impulsor3000_setup.exe
