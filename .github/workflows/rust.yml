@@ -111,11 +111,7 @@ jobs:
     steps:
       - name: Install NSIS
         run: |
-          iwr -useb get.scoop.sh -outfile 'install.ps1'
-          .\install.ps1 -RunAsAdmin
-          scoop update
-          scoop bucket add extras
-          scoop install nsis
+          choco install nsis --no-progress -y
 
       - uses: actions/checkout@v4
         with:
@@ -127,7 +123,7 @@ jobs:
 
       - name: Build installer
         working-directory: ./installer/windows
-        run: makensis.exe /V4 .\script.nsi
+        run: '& "${env:ProgramFiles(x86)}\NSIS\makensis.exe" /V4 .\script.nsi'
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
