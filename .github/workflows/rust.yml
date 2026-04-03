@@ -15,8 +15,8 @@ jobs:
     runs-on: ubuntu-24.04
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -42,7 +42,7 @@ jobs:
       # - name: Run tests
       #   run:  cargo test --verbose
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binary-linux
           path: target/release/impulsor3000
@@ -51,8 +51,8 @@ jobs:
     runs-on: windows-2025
 
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/cache@v4
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
         with:
           path: |
             ~/.cargo/bin/
@@ -66,7 +66,7 @@ jobs:
       # - name: Run tests
       #   run:  cargo test --verbose
       - name: Upload binary
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: binary-windows
           path: ./target/release/impulsor3000.exe
@@ -76,10 +76,10 @@ jobs:
     needs: build-linux-x64-binary
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           lfs: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: binary-linux
           path: ./target/release
@@ -99,7 +99,7 @@ jobs:
           mv Impulsor-3000-x86_64.AppImage Impulsor-3000_x86-64.AppImage
 
       - name: Upload AppImage
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: appimage-linux
           path: ./installer/linux/appimage/Impulsor-3000_x86-64.AppImage
@@ -113,10 +113,10 @@ jobs:
         run: |
           choco install nsis --no-progress -y
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v6
         with:
           lfs: true
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: binary-windows
           path: ./target/release
@@ -126,7 +126,7 @@ jobs:
         run: '& "${env:ProgramFiles(x86)}\NSIS\makensis.exe" /V4 .\script.nsi'
 
       - name: Upload installer
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: installer-windows
           path: ./installer/windows/impulsor3000_setup.exe

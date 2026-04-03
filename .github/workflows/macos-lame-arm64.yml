@@ -20,7 +20,7 @@ jobs:
           file output/libmp3lame.dylib
 
       - name: Upload dylib artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v6
         with:
           name: libmp3lame-macos-arm64
           path: output/libmp3lame.dylib
