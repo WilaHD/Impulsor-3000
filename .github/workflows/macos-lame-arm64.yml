@@ -1,0 +1,24 @@
+name: Build macOS ARM LAME
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-libmp3lame-dylib:
+    runs-on: macos-15
+
+    steps:
+      - name: Install LAME
+        run: brew install lame
+
+      - name: Collect dylib
+        run: |
+          mkdir -p output
+          cp "$(brew --prefix lame)/lib/libmp3lame.dylib" output/libmp3lame.dylib
+          file output/libmp3lame.dylib
+
+      - name: Upload dylib artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libmp3lame-macos-arm64
+          path: output/libmp3lame.dylib
