@@ -2,6 +2,8 @@ name: Build macOS ARM LAME
 
 on:
   workflow_dispatch:
+  push: # will be removed later
+    branches: ["develop"] # |
 
 jobs:
   build-libmp3lame-dylib:
