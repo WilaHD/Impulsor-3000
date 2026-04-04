@@ -68,7 +68,7 @@ fn pdfium_library_relative_path() -> Result<PathBuf, String> {
     match (env::consts::OS, env::consts::ARCH) {
         ("linux", "x86_64") => Ok(PathBuf::from("libs/pdfium/linux-x64/libpdfium.so")),
         ("windows", "x86_64") => Ok(PathBuf::from("libs/pdfium/win-x64/pdfium.dll")),
-        ("macos", "aarch64") => Ok(PathBuf::from("libs/pdfium/mac-x64-arm/libpdfium.dylib")),
+        ("macos", "aarch64") => Ok(PathBuf::from("libs/pdfium/mac-arm64/libpdfium.dylib")),
         (os, arch) => Err(format!("Unsupported platform for PDFium: {os}/{arch}")),
     }
 }
@@ -77,7 +77,7 @@ fn lame_library_relative_path() -> Result<PathBuf, String> {
     match (env::consts::OS, env::consts::ARCH) {
         ("linux", "x86_64") => Ok(PathBuf::from("libs/lame/linux-x64/libmp3lame.so")),
         ("windows", "x86_64") => Ok(PathBuf::from("libs/lame/win-x64/libmp3lame.dll")),
-        ("macos", "aarch64") => Ok(PathBuf::from("libs/lame/mac-x64-arm/libmp3lame.dylib")),
+        ("macos", "aarch64") => Ok(PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib")),
         (os, arch) => Err(format!("Unsupported platform for LAME: {os}/{arch}")),
     }
 }
