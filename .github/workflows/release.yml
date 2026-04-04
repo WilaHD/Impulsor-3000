@@ -22,7 +22,11 @@ jobs:
         with:
           name: appimage-linux
           path: ./appimage
+      - uses: actions/download-artifact@v5
+        with:
+          name: app-macos-arm64
+          path: ./macos
       - uses: ncipollo/release-action@v1.20.0
         with:
-          artifacts: "./installer/impulsor3000_setup.exe,./appimage/Impulsor-3000_x86-64.AppImage"
+          artifacts: "./installer/impulsor3000_setup.exe,./appimage/Impulsor-3000_x86-64.AppImage,./macos/Impulsor-3000.app"
           bodyFile: ""

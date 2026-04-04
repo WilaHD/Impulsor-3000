@@ -95,6 +95,38 @@ jobs:
           name: binary-macos-arm64
           path: target/release/impulsor3000
 
+  bundle-macos-arm64-app:
+    runs-on: macos-15
+    needs: build-macos-arm64-binary
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/download-artifact@v5
+        with:
+          name: binary-macos-arm64
+          path: ./target/release
+
+      - name: Build app bundle
+        run: |
+          APP_NAME="Impulsor-3000.app"
+          APP_ROOT="target/release/${APP_NAME}"
+          mkdir -p "${APP_ROOT}/Contents/MacOS"
+          mkdir -p "${APP_ROOT}/Contents/Resources/libs/lame"
+          mkdir -p "${APP_ROOT}/Contents/Resources/libs/pdfium"
+          cp installer/macos/Info.plist "${APP_ROOT}/Contents/Info.plist"
+          cp target/release/impulsor3000 "${APP_ROOT}/Contents/MacOS/impulsor3000"
+          chmod +x "${APP_ROOT}/Contents/MacOS/impulsor3000"
+          cp -R libs/lame/mac-arm64 "${APP_ROOT}/Contents/Resources/libs/lame/"
+          cp -R libs/pdfium/mac-arm64 "${APP_ROOT}/Contents/Resources/libs/pdfium/"
+          cp imgs/logo.png "${APP_ROOT}/Contents/Resources/logo.png"
+
+      - name: Upload app bundle
+        uses: actions/upload-artifact@v6
+        with:
+          name: app-macos-arm64
+          path: target/release/Impulsor-3000.app
+
   build-linux-x64-appimage:
     runs-on: ubuntu-24.04
     needs: build-linux-x64-binary
