@@ -121,11 +121,17 @@ jobs:
           cp -R libs/pdfium/mac-arm64 "${APP_ROOT}/Contents/Resources/libs/pdfium/"
           cp imgs/logo.png "${APP_ROOT}/Contents/Resources/logo.png"
 
+      - name: Zip app bundle
+        run: |
+          ditto -c -k --sequesterRsrc --keepParent \
+            "target/release/Impulsor-3000.app" \
+            "target/release/Impulsor-3000-macos-arm64.zip"
+
       - name: Upload app bundle
         uses: actions/upload-artifact@v6
         with:
           name: app-macos-arm64
-          path: target/release/Impulsor-3000.app
+          path: target/release/Impulsor-3000-macos-arm64.zip
 
   build-linux-x64-appimage:
     runs-on: ubuntu-24.04
