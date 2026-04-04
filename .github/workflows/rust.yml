@@ -71,6 +71,30 @@ jobs:
           name: binary-windows
           path: ./target/release/impulsor3000.exe
 
+  build-macos-arm64-binary:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/cache@v5
+        with:
+          path: |
+            ~/.cargo/bin/
+            ~/.cargo/registry/index/
+            ~/.cargo/registry/cache/
+            ~/.cargo/git/db/
+            target/
+          key: ${{ runner.os }}-cargo-${{ hashFiles('**/Cargo.lock') }}
+      - name: Build release
+        run: cargo build --verbose --release
+      # - name: Run tests
+      #   run: cargo test --verbose
+      - name: Upload binary
+        uses: actions/upload-artifact@v6
+        with:
+          name: binary-macos-arm64
+          path: target/release/impulsor3000
+
   build-linux-x64-appimage:
     runs-on: ubuntu-24.04
     needs: build-linux-x64-binary

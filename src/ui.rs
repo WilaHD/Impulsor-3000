@@ -7,7 +7,7 @@ pub mod file_banner;
 pub mod file_icons;
 mod screens;
 
-use impulsor3000::choose_pdfium_by_os_arch;
+use impulsor3000::platform_paths;
 use screens::{conversion, settings, welcome};
 
 pub enum PdfiumLibState {
@@ -35,20 +35,17 @@ struct MainView {
 
 impl MainView {
     fn new() -> (MainView, Task<Message>) {
-        let pdfium_lib_state = match choose_pdfium_by_os_arch() {
-            Ok(pdfium_path) => {
-                match Pdfium::bind_to_library(Pdfium::pdfium_platform_library_name_at_path(
-                    &pdfium_path,
-                )) {
-                    Ok(pdfium) => {
-                        let pdfium = Pdfium::new(pdfium);
-                        PdfiumLibState::Ok(pdfium)
-                    }
-                    Err(e) => {
-                        panic!("Pdfium library not found at {pdfium_path} \n Error: {e:?}")
-                    }
+        let pdfium_lib_state = match platform_paths::pdfium_library_path() {
+            Ok(pdfium_path) => match Pdfium::bind_to_library(&pdfium_path) {
+                Ok(pdfium) => {
+                    let pdfium = Pdfium::new(pdfium);
+                    PdfiumLibState::Ok(pdfium)
                 }
-            }
+                Err(e) => PdfiumLibState::NotFound(format!(
+                    "Pdfium library not found at {}. Error: {e:?}",
+                    pdfium_path.display()
+                )),
+            },
             Err(e) => PdfiumLibState::NotFound(e),
         };
 

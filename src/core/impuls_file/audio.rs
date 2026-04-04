@@ -5,6 +5,7 @@ use std::{
     path::PathBuf,
 };
 
+use impulsor3000::platform_paths;
 use lame::Lame;
 use symphonia::{
     core::{
@@ -69,22 +70,7 @@ impl AudioModel {
 }
 
 fn convert(input_file: &PathBuf, output_file: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    // Add the directory containing the LAME library to the library path
-    #[cfg(target_os = "linux")]
-    std::env::set_var("LD_LIBRARY_PATH", "./libs/lame/linux-x64");
-
-    #[cfg(target_os = "macos")]
-    std::env::set_var("DYLD_LIBRARY_PATH", "./libs/lame/...");
-
-    #[cfg(target_os = "windows")]
-    std::env::set_var(
-        "PATH",
-        format!(
-            "{};{}",
-            "./libs/lame/win-x64",
-            std::env::var("PATH").unwrap()
-        ),
-    );
+    let _lame_path = platform_paths::lame_library_path()?;
 
     // Open the input file
     let file = File::open(input_file)?;
