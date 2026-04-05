@@ -124,23 +124,22 @@ jobs:
           sips -z 512 512 imgs/logo.png --out "${ICONSET_DIR}/icon_512x512.png"
           cp imgs/logo.png "${ICONSET_DIR}/icon_512x512@2x.png"
           iconutil -c icns "${ICONSET_DIR}" -o "${APP_ROOT}/Contents/Resources/AppIcon.icns"
-          cp "${LAME_DIR}/libmp3lame.dylib" "${LAME_DIR}/libmp3lame.0.dylib"
           install_name_tool -id \
-            "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.0.dylib" \
-            "${LAME_DIR}/libmp3lame.0.dylib"
+            "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib" \
+            "${LAME_DIR}/libmp3lame.dylib"
           install_name_tool -id \
             "@loader_path/libpdfium.dylib" \
             "${PDFIUM_DIR}/libpdfium.dylib"
           install_name_tool -change \
             "/opt/homebrew/opt/lame/lib/libmp3lame.0.dylib" \
-            "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.0.dylib" \
+            "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib" \
             "${APP_BIN}"
 
       - name: Validate bundled libraries
         run: |
           APP_ROOT="target/release/Impulsor-3000.app"
           APP_BIN="${APP_ROOT}/Contents/MacOS/impulsor3000"
-          LAME_LIB="${APP_ROOT}/Contents/Resources/libs/lame/mac-arm64/libmp3lame.0.dylib"
+          LAME_LIB="${APP_ROOT}/Contents/Resources/libs/lame/mac-arm64/libmp3lame.dylib"
           PDFIUM_LIB="${APP_ROOT}/Contents/Resources/libs/pdfium/mac-arm64/libpdfium.dylib"
 
           test -f "${APP_BIN}"
@@ -156,8 +155,8 @@ jobs:
           echo "PDFium dylib install name:"
           otool -D "${PDFIUM_LIB}"
 
-          otool -L "${APP_BIN}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.0.dylib"
-          otool -D "${LAME_LIB}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.0.dylib"
+          otool -L "${APP_BIN}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib"
+          otool -D "${LAME_LIB}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib"
           otool -D "${PDFIUM_LIB}" | grep -F "@loader_path/libpdfium.dylib"
 
           set +e
@@ -171,7 +170,7 @@ jobs:
           echo "DYLD stderr:"
           cat app.stderr
 
-          grep -F "Contents/Resources/libs/lame/mac-arm64/libmp3lame.0.dylib" app.stderr
+          grep -F "Contents/Resources/libs/lame/mac-arm64/libmp3lame.dylib" app.stderr
           grep -F "Contents/Resources/libs/pdfium/mac-arm64/libpdfium.dylib" app.stderr
 
       - name: Zip app bundle

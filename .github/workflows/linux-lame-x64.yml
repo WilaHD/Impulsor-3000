@@ -19,10 +19,8 @@ jobs:
           LIB_DIR="/usr/lib/$(dpkg-architecture -qDEB_HOST_MULTIARCH)"
           mkdir -p output
           cp -L "${LIB_DIR}/libmp3lame.so" output/libmp3lame.so
-          cp -L "${LIB_DIR}/libmp3lame.so.0" output/libmp3lame.so.0
           file output/libmp3lame.so
-          file output/libmp3lame.so.0
-          readelf -d output/libmp3lame.so.0 | grep -E 'SONAME|NEEDED'
+          readelf -d output/libmp3lame.so | grep -E 'SONAME|NEEDED'
 
       - name: Upload shared library artifact
         uses: actions/upload-artifact@v6

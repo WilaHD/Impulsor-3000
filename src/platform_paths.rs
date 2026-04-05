@@ -95,15 +95,9 @@ fn pdfium_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
 
 fn lame_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
     match (env::consts::OS, env::consts::ARCH) {
-        ("linux", "x86_64") => Ok(vec![
-            PathBuf::from("libs/lame/linux-x64/libmp3lame.so"),
-            PathBuf::from("libs/lame/linux-x64/libmp3lame.so.0"),
-        ]),
+        ("linux", "x86_64") => Ok(vec![PathBuf::from("libs/lame/linux-x64/libmp3lame.so")]),
         ("windows", "x86_64") => Ok(vec![PathBuf::from("libs/lame/win-x64/libmp3lame.dll")]),
-        ("macos", "aarch64") => Ok(vec![
-            PathBuf::from("libs/lame/mac-arm64/libmp3lame.0.dylib"),
-            PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib"),
-        ]),
+        ("macos", "aarch64") => Ok(vec![PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib")]),
         (os, arch) => Err(format!("Unsupported platform for LAME: {os}/{arch}")),
     }
 }
