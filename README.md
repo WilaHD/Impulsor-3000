@@ -19,8 +19,8 @@ Alle Neuigkeiten und Veränderungen zu einer neuen Hauptversion des Programms k�
 
 
 ## Installation
-Aktuell nur für gängige Windows 10 und 11 (x64) sowie Linux (x64) Systeme verfügbar.
-Versionen für MacOS und weitere ARM-Plattformen sind nicht verfügbar.
+Aktuell nur für gängige Windows 10 und 11 (x64) sowie Linux (x64) und MacOS (arm64) Systeme verfügbar.
+Versionen für weitere Plattformen sind nicht verfügbar.
 
 [![GitHub Downloads (specific asset, latest release)](https://img.shields.io/github/downloads/WilaHD/Impulsor-3000/latest/impulsor3000_setup.exe%20?label=Download%20Windows&color=blue)
 ](https://github.com/wilahd/Impulsor-3000/releases/latest/download/impulsor3000_setup.exe)
@@ -28,6 +28,10 @@ Versionen für MacOS und weitere ARM-Plattformen sind nicht verfügbar.
 
 [![GitHub Downloads (specific asset, latest release)](https://img.shields.io/github/downloads/wilahd/Impulsor-3000/latest/Impulsor-3000_x86-64.AppImage?label=Download%20Linux&color=blue)](https://github.com/wilahd/Impulsor-3000/releases/latest/download/Impulsor-3000_x86-64.AppImage)
 &larr; AppImage für Linux hier herunterladen.
+
+[![GitHub Downloads (specific asset, latest release)](https://img.shields.io/github/downloads/wilahd/Impulsor-3000/latest/Impulsor-3000-macos-arm64.zip?label=Download%20MacOS&color=blue)](https://github.com/wilahd/Impulsor-3000/releases/latest/download/Impulsor-3000-macos-arm64.zip)
+&larr; App für MacOS hier herunterladen und Zipp-Datei entpacken.
+
 
 ## Hinweise für Entwickler
 
