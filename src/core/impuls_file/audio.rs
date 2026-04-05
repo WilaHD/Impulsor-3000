@@ -5,7 +5,6 @@ use std::{
     path::PathBuf,
 };
 
-use impulsor3000::platform_paths;
 use lame::Lame;
 use symphonia::{
     core::{
@@ -70,8 +69,6 @@ impl AudioModel {
 }
 
 fn convert(input_file: &PathBuf, output_file: &PathBuf) -> Result<(), Box<dyn std::error::Error>> {
-    let _lame_path = platform_paths::lame_library_path()?;
-
     // Open the input file
     let file = File::open(input_file)?;
     let mss = MediaSourceStream::new(Box::new(file), Default::default());

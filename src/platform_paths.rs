@@ -26,11 +26,11 @@ pub fn resource_root() -> Result<PathBuf, String> {
 }
 
 pub fn pdfium_library_path() -> Result<PathBuf, String> {
-    Ok(resource_root()?.join(pdfium_library_relative_path()?))
+    find_library_path("PDFium", pdfium_library_relative_candidates()?)
 }
 
 pub fn lame_library_path() -> Result<PathBuf, String> {
-    Ok(resource_root()?.join(lame_library_relative_path()?))
+    find_library_path("LAME", lame_library_relative_candidates()?)
 }
 
 fn candidate_resource_roots(exe_dir: &Path) -> Vec<PathBuf> {
@@ -64,20 +64,46 @@ fn macos_bundle_resources_dir(exe_dir: &Path) -> Option<PathBuf> {
     Some(contents_dir.join("Resources"))
 }
 
-fn pdfium_library_relative_path() -> Result<PathBuf, String> {
+fn find_library_path(name: &str, candidates: Vec<PathBuf>) -> Result<PathBuf, String> {
+    let root = resource_root()?;
+    let absolute_candidates = candidates
+        .into_iter()
+        .map(|candidate| root.join(candidate))
+        .collect::<Vec<_>>();
+
+    if let Some(path) = absolute_candidates.iter().find(|path| path.is_file()) {
+        return Ok(path.clone());
+    }
+
+    let tried = absolute_candidates
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join(", ");
+
+    Err(format!("{name} library not found. Tried: {tried}"))
+}
+
+fn pdfium_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
     match (env::consts::OS, env::consts::ARCH) {
-        ("linux", "x86_64") => Ok(PathBuf::from("libs/pdfium/linux-x64/libpdfium.so")),
-        ("windows", "x86_64") => Ok(PathBuf::from("libs/pdfium/win-x64/pdfium.dll")),
-        ("macos", "aarch64") => Ok(PathBuf::from("libs/pdfium/mac-arm64/libpdfium.dylib")),
+        ("linux", "x86_64") => Ok(vec![PathBuf::from("libs/pdfium/linux-x64/libpdfium.so")]),
+        ("windows", "x86_64") => Ok(vec![PathBuf::from("libs/pdfium/win-x64/pdfium.dll")]),
+        ("macos", "aarch64") => Ok(vec![PathBuf::from("libs/pdfium/mac-arm64/libpdfium.dylib")]),
         (os, arch) => Err(format!("Unsupported platform for PDFium: {os}/{arch}")),
     }
 }
 
-fn lame_library_relative_path() -> Result<PathBuf, String> {
+fn lame_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
     match (env::consts::OS, env::consts::ARCH) {
-        ("linux", "x86_64") => Ok(PathBuf::from("libs/lame/linux-x64/libmp3lame.so")),
-        ("windows", "x86_64") => Ok(PathBuf::from("libs/lame/win-x64/libmp3lame.dll")),
-        ("macos", "aarch64") => Ok(PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib")),
+        ("linux", "x86_64") => Ok(vec![
+            PathBuf::from("libs/lame/linux-x64/libmp3lame.so"),
+            PathBuf::from("libs/lame/linux-x64/libmp3lame.so.0"),
+        ]),
+        ("windows", "x86_64") => Ok(vec![PathBuf::from("libs/lame/win-x64/libmp3lame.dll")]),
+        ("macos", "aarch64") => Ok(vec![
+            PathBuf::from("libs/lame/mac-arm64/libmp3lame.0.dylib"),
+            PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib"),
+        ]),
         (os, arch) => Err(format!("Unsupported platform for LAME: {os}/{arch}")),
     }
 }
