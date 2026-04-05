@@ -8,6 +8,8 @@
     <string>Impulsor-3000</string>
     <key>CFBundleExecutable</key>
     <string>impulsor3000</string>
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
     <key>CFBundleIdentifier</key>
     <string>de.kirchgemeinden.impulsor3000</string>
     <key>CFBundleInfoDictionaryVersion</key>
