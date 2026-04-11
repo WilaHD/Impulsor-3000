@@ -10,6 +10,8 @@ mod screens;
 use impulsor3000::platform_paths;
 use screens::{conversion, settings, welcome};
 
+const WAYLAND_APPLICATION_ID: &str = "impulsor3000";
+
 pub enum PdfiumLibState {
     Ok(Pdfium),
     NotFound(String),
@@ -86,7 +88,30 @@ impl MainView {
 pub fn main() -> iced::Result {
     iced::application(MainView::title, MainView::update, MainView::view)
         .theme(MainView::theme)
+        .window(main_window_settings())
         .run_with(MainView::new)
+}
+
+fn main_window_settings() -> window::Settings {
+    window::Settings {
+        icon: load_app_icon(),
+        platform_specific: window::settings::PlatformSpecific {
+            application_id: WAYLAND_APPLICATION_ID.to_string(),
+            ..window::settings::PlatformSpecific::default()
+        },
+        ..window::Settings::default()
+    }
+}
+
+fn load_app_icon() -> Option<window::Icon> {
+    let pixels = image::load_from_memory_with_format(
+        include_bytes!("../imgs/logo.png"),
+        image::ImageFormat::Png,
+    )
+    .ok()?
+    .to_rgba8();
+
+    window::icon::from_rgba(pixels.to_vec(), pixels.width(), pixels.height()).ok()
 }
 
 impl MainView {
