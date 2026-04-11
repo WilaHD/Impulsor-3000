@@ -10,7 +10,7 @@
 
 Ein Werkzeug zur Umwandlung der eingereichten Impuls PDF-Dateien in Bilder und HTML-Vorlagen für den täglichen Impuls der Kirchgemeinden im Striegistal. Jetzt auch mit der Möglichkeit zur Umwandlung von WhatsApp-Sprachnachrichten in MP3-Dateien.
 
-- [:earth_africa: Webseite der Kirchgemeinden im Striegistal](https://kirchgemeinden-im-striegistal.de/)
+- [:earth_africa: Webseite der Kirchgemeinden im Striegistal und der Zschopau](https://kirchen-zschopau-striegis.de/)
 - [:newspaper: Telegram-Bot für den täglichen Impuls](https://t.me/tagesimpuls_bot)
 - [:newspaper: WhatsApp-Kanal für den täglichen Impuls](https://whatsapp.com/channel/0029VarVA8AIyPtYcBrnFG1p)
 

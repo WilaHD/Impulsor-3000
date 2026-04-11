@@ -1,6 +1,6 @@
 !define APP_NAME "Impulsor-3000"
 !define COMP_NAME "Wilhelm Rosinski / Kirchgemeinden im Striegistal"
-!define WEB_SITE "https://kirchgemeinden-im-striegistal.de/"
+!define WEB_SITE "https://kirchen-zschopau-striegis/"
 !define VERSION "0.2.2.0"
 !define COPYRIGHT "Kirchgemeinden im Striegistal, 2025"
 !define DESCRIPTION "Programm zur Umwandlung der Impuls-PDF-Dateien in Bilder und Text-Vorlagen für Wordpress. "
