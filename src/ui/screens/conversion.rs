@@ -1,4 +1,4 @@
-use std::collections::HashSet;
+use std::{collections::HashSet, path::PathBuf};
 
 use iced::{
     alignment::Horizontal,
@@ -27,6 +27,7 @@ use super::super::{
         build_icon_file_search, build_icon_html_error, build_icon_html_success,
         build_icon_image_error, build_icon_image_success,
     },
+    material_symbols,
 };
 
 pub struct State {
@@ -49,6 +50,7 @@ enum Mode {
 pub enum Message {
     ConvertSelected,
     AddFiles,
+    RemoveSelectedFiles,
     FilesPicked(Option<Vec<FileHandle>>),
     AdditionalFilesPicked(Option<Vec<FileHandle>>),
     SetAllFileSelections(bool),
@@ -84,6 +86,19 @@ impl State {
         self.request_files("Impuls-/Audio-Datei(en) auswählen", Message::FilesPicked)
     }
 
+    pub fn has_files(&self) -> bool {
+        !self.file_queue.is_empty()
+    }
+
+    pub fn replace_files_from_paths(&mut self, paths: Vec<PathBuf>) -> Action {
+        self.replace_files(build_file_queue_from_paths(paths))
+    }
+
+    pub fn add_files_from_paths(&mut self, paths: Vec<PathBuf>) -> Action {
+        self.add_file_models(build_file_queue_from_paths(paths));
+        Action::None
+    }
+
     fn request_file_addition(&mut self) -> Task<Message> {
         self.request_files("Datei(en) hinzufügen", Message::AdditionalFilesPicked)
     }
@@ -109,6 +124,10 @@ impl State {
         match message {
             Message::ConvertSelected => self.start_selected_conversion(),
             Message::AddFiles => Action::Run(self.request_file_addition()),
+            Message::RemoveSelectedFiles => {
+                self.remove_selected_files();
+                Action::None
+            }
             Message::FilesPicked(picked_files) => {
                 self.is_selecting_files = false;
 
@@ -122,10 +141,9 @@ impl State {
                     return Action::None;
                 };
 
-                self.file_queue = build_file_queue(picked_files);
-                self.selected_files = vec![true; self.file_queue.len()];
-
-                self.start_selected_conversion()
+                self.replace_files(build_file_queue_from_paths(file_handles_to_paths(
+                    picked_files,
+                )))
             }
             Message::AdditionalFilesPicked(picked_files) => {
                 self.is_selecting_files = false;
@@ -134,8 +152,7 @@ impl State {
                     return Action::None;
                 };
 
-                self.append_files(build_file_queue(picked_files));
-                Action::None
+                self.add_files_from_paths(file_handles_to_paths(picked_files))
             }
             Message::SetAllFileSelections(is_selected) => {
                 self.set_all_file_selections(is_selected);
@@ -332,7 +349,11 @@ impl State {
             .padding(20)
         } else {
             let convert_selected_button = {
-                let button = button("Neu umwandeln").style(button::secondary);
+                let button = button(material_symbols::label(
+                    material_symbols::icon::REDO,
+                    "Neu umwandeln",
+                ))
+                .style(button::secondary);
 
                 if self.has_selected_files() {
                     button.on_press(Message::ConvertSelected)
@@ -344,18 +365,43 @@ impl State {
             row![
                 row![
                     convert_selected_button,
-                    button("Dateien hinzufügen")
-                        .on_press(Message::AddFiles)
-                        .style(button::secondary),
-                    button("Zurück")
-                        .on_press(Message::GoToWelcome)
-                        .style(button::secondary)
+                    button(material_symbols::label(
+                        material_symbols::icon::ADD,
+                        "Dateien hinzufügen",
+                    ))
+                    .on_press(Message::AddFiles)
+                    .style(button::secondary),
+                    {
+                        let button = button(material_symbols::label(
+                            material_symbols::icon::DELETE,
+                            "Dateien entfernen",
+                        ))
+                        .style(button::secondary);
+
+                        if self.has_selected_files() {
+                            button.on_press(Message::RemoveSelectedFiles)
+                        } else {
+                            button
+                        }
+                    },
+                    button(material_symbols::label(
+                        material_symbols::icon::ARROW_BACK,
+                        "Zurück",
+                    ))
+                    .on_press(Message::GoToWelcome)
+                    .style(button::secondary)
                 ]
                 .spacing(20)
                 .width(Fill),
-                container(button("Beenden").on_press(Message::Exit))
-                    .align_x(Horizontal::Right)
-                    .style(container::bordered_box)
+                container(
+                    button(material_symbols::label(
+                        material_symbols::icon::CLOSE,
+                        "Beenden",
+                    ))
+                    .on_press(Message::Exit),
+                )
+                .align_x(Horizontal::Right)
+                .style(container::bordered_box)
             ]
             .spacing(20)
             .padding(20)
@@ -450,8 +496,39 @@ impl State {
             .extend(std::iter::repeat(true).take(additional_file_count));
     }
 
+    fn replace_files(&mut self, files: Vec<ImpulsFileType>) -> Action {
+        self.file_queue.clear();
+        self.selected_files.clear();
+        self.pending_files.clear();
+        self.mode = Mode::Default;
+        self.progress = 0;
+
+        self.append_files(files);
+        self.start_selected_conversion()
+    }
+
+    fn add_file_models(&mut self, files: Vec<ImpulsFileType>) {
+        self.append_files(files);
+    }
+
     fn has_selected_files(&self) -> bool {
         self.selected_files.iter().any(|is_selected| *is_selected)
+    }
+
+    fn remove_selected_files(&mut self) {
+        let remaining_files = std::mem::take(&mut self.file_queue)
+            .into_iter()
+            .zip(std::mem::take(&mut self.selected_files))
+            .filter_map(|(file, is_selected)| (!is_selected).then_some((file, is_selected)))
+            .collect::<Vec<_>>();
+
+        let (file_queue, selected_files): (Vec<_>, Vec<_>) = remaining_files.into_iter().unzip();
+
+        self.file_queue = file_queue;
+        self.selected_files = selected_files;
+        self.pending_files.clear();
+        self.progress = 0;
+        self.mode = Mode::Default;
     }
 
     fn are_all_files_selected(&self) -> bool {
@@ -510,20 +587,25 @@ impl State {
     }
 }
 
-fn build_file_queue(picked_files: Vec<FileHandle>) -> Vec<ImpulsFileType> {
-    picked_files
+fn build_file_queue_from_paths(paths: Vec<PathBuf>) -> Vec<ImpulsFileType> {
+    paths
         .into_iter()
-        .map(|file| {
-            let path = file.path().to_path_buf();
-
-            match path.extension().and_then(|extension| extension.to_str()) {
+        .map(
+            |path| match path.extension().and_then(|extension| extension.to_str()) {
                 Some("pdf") => ImpulsFileType::Pdf(ImpulsModel::build_from_path_buf(&path)),
                 Some(extension) if SUPPORTED_AUDIO_TYPES.contains(&extension) => {
                     ImpulsFileType::Audio(AudioModel::build(path))
                 }
                 Some(_) | None => ImpulsFileType::Unknown(path.to_string_lossy().to_string()),
-            }
-        })
+            },
+        )
+        .collect()
+}
+
+fn file_handles_to_paths(picked_files: Vec<FileHandle>) -> Vec<PathBuf> {
+    picked_files
+        .into_iter()
+        .map(|file| file.path().to_path_buf())
         .collect()
 }
 

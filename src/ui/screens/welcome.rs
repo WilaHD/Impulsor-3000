@@ -4,7 +4,7 @@ use iced::{
     Alignment, Element, Fill,
 };
 
-use super::super::{file_banner, PdfiumLibState};
+use super::super::{file_banner, material_symbols, PdfiumLibState};
 
 pub struct State;
 
@@ -42,21 +42,36 @@ impl State {
                 column![
                     vertical_space().height(100),
                     button(
-                        container(text("Impuls-PDF-Datei(en) auswählen"))
-                            .center_x(Fill)
-                            .center_y(Fill)
+                        container(material_symbols::centered_label(
+                            material_symbols::icon::ADD,
+                            "Impuls-PDF-Datei(en) auswählen",
+                        ))
+                        .width(Fill)
+                        .height(Fill)
+                        .center(Fill),
                     )
                     .on_press(Message::OpenConversion)
                     .height(100)
                     .width(500),
-                    button(text("Einstellungen").center())
-                        .on_press(Message::OpenSettings)
-                        .width(500)
-                        .style(button::secondary),
-                    button(text("Beenden").center())
-                        .on_press(Message::Exit)
-                        .width(500)
-                        .style(button::secondary),
+                    container(material_symbols::centered_label::<Message>(
+                        material_symbols::icon::INFO,
+                        "Dateien können auch direkt hier ins Fenster gezogen werden.",
+                    ))
+                    .width(500),
+                    button(material_symbols::centered_label(
+                        material_symbols::icon::SETTINGS,
+                        "Einstellungen",
+                    ))
+                    .on_press(Message::OpenSettings)
+                    .width(500)
+                    .style(button::secondary),
+                    button(material_symbols::centered_label(
+                        material_symbols::icon::CLOSE,
+                        "Beenden",
+                    ))
+                    .on_press(Message::Exit)
+                    .width(500)
+                    .style(button::secondary),
                 ]
                 .spacing(20),
             ),
