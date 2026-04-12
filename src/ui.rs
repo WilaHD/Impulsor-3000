@@ -188,12 +188,22 @@ fn prefer_x11_when_wayland_file_drop_is_unavailable() {
 fn main_window_settings() -> window::Settings {
     window::Settings {
         icon: load_app_icon(),
-        platform_specific: window::settings::PlatformSpecific {
-            application_id: WAYLAND_APPLICATION_ID.to_string(),
-            ..window::settings::PlatformSpecific::default()
-        },
+        platform_specific: main_window_platform_settings(),
         ..window::Settings::default()
     }
+}
+
+#[cfg(target_os = "linux")]
+fn main_window_platform_settings() -> window::settings::PlatformSpecific {
+    window::settings::PlatformSpecific {
+        application_id: WAYLAND_APPLICATION_ID.to_string(),
+        ..window::settings::PlatformSpecific::default()
+    }
+}
+
+#[cfg(not(target_os = "linux"))]
+fn main_window_platform_settings() -> window::settings::PlatformSpecific {
+    window::settings::PlatformSpecific::default()
 }
 
 fn load_app_icon() -> Option<window::Icon> {
