@@ -3,8 +3,7 @@ use iced::{
     Alignment, Fill, Font,
 };
 
-pub const FONT_BYTES: &[u8] =
-    include_bytes!("../../fonts/MaterialSymbolsRounded[FILL,GRAD,opsz,wght].ttf");
+pub const FONT_BYTES: &[u8] = include_bytes!("../../fonts/MaterialSymbolsRounded.ttf");
 pub const FONT: Font = Font::with_name("Material Symbols Rounded");
 
 pub mod icon {
@@ -13,8 +12,8 @@ pub mod icon {
     pub const CLOSE: char = '\u{e5cd}';
     pub const DELETE: char = '\u{e872}';
     pub const INFO: char = '\u{e88e}';
-    pub const SETTINGS: char = '\u{e8b8}';
     pub const REDO: char = '\u{e15a}';
+    pub const SETTINGS: char = '\u{e8b8}';
 }
 
 pub fn symbol(codepoint: char) -> Text<'static> {
