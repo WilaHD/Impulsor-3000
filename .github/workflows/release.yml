@@ -30,3 +30,4 @@ jobs:
         with:
           artifacts: "./installer/impulsor3000_setup.exe,./appimage/Impulsor-3000_x86-64.AppImage,./macos/Impulsor-3000-macos-arm64.zip"
           bodyFile: ""
+          prerelease: ${{ contains(github.ref_name, '-') }}

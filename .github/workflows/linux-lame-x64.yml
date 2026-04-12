@@ -2,7 +2,6 @@ name: Build Linux x64 LAME
 
 on:
   workflow_dispatch:
-  push:
 
 jobs:
   build-libmp3lame-so:

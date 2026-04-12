@@ -17,6 +17,7 @@ mod screens;
 use impulsor3000::platform_paths;
 use screens::{conversion, settings, welcome};
 
+#[cfg(target_os = "linux")]
 const WAYLAND_APPLICATION_ID: &str = "impulsor3000";
 
 pub enum PdfiumLibState {
