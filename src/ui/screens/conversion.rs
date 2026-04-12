@@ -30,6 +30,8 @@ use super::super::{
     material_symbols,
 };
 
+const COMPACT_FOOTER_THRESHOLD: f32 = 800.0;
+
 pub struct State {
     file_queue: Vec<ImpulsFileType>,
     selected_files: Vec<bool>,
@@ -37,6 +39,7 @@ pub struct State {
     mode: Mode,
     progress: usize,
     is_selecting_files: bool,
+    window_width: f32,
 }
 
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
@@ -60,6 +63,7 @@ pub enum Message {
     GoToWelcome,
     Exit,
     RevealFile(String),
+    WindowResized(f32),
 }
 
 pub enum Action {
@@ -79,6 +83,7 @@ impl State {
             mode: Mode::Default,
             progress: 0,
             is_selecting_files: false,
+            window_width: 1280.0,
         }
     }
 
@@ -173,6 +178,10 @@ impl State {
             Message::GoToWelcome => Action::OpenWelcome,
             Message::Exit => Action::Exit,
             Message::RevealFile(path) => Action::RevealFile(path),
+            Message::WindowResized(width) => {
+                self.window_width = width;
+                Action::None
+            }
         }
     }
 
@@ -340,71 +349,16 @@ impl State {
             }
         }
 
-        let control_row = if self.mode == Mode::Converting {
+        let control_row: Element<'_, Message> = if self.mode == Mode::Converting {
             row![
                 progress_bar(0.0..=self.pending_files.len() as f32, self.progress as f32)
                     .width(Fill)
             ]
             .spacing(20)
             .padding(20)
+            .into()
         } else {
-            let convert_selected_button = {
-                let button = button(material_symbols::label(
-                    material_symbols::icon::REDO,
-                    "Neu umwandeln",
-                ))
-                .style(button::secondary);
-
-                if self.has_selected_files() {
-                    button.on_press(Message::ConvertSelected)
-                } else {
-                    button
-                }
-            };
-
-            row![
-                row![
-                    convert_selected_button,
-                    button(material_symbols::label(
-                        material_symbols::icon::ADD,
-                        "Dateien hinzufügen",
-                    ))
-                    .on_press(Message::AddFiles)
-                    .style(button::secondary),
-                    {
-                        let button = button(material_symbols::label(
-                            material_symbols::icon::DELETE,
-                            "Dateien entfernen",
-                        ))
-                        .style(button::secondary);
-
-                        if self.has_selected_files() {
-                            button.on_press(Message::RemoveSelectedFiles)
-                        } else {
-                            button
-                        }
-                    },
-                    button(material_symbols::label(
-                        material_symbols::icon::ARROW_BACK,
-                        "Zurück",
-                    ))
-                    .on_press(Message::GoToWelcome)
-                    .style(button::secondary)
-                ]
-                .spacing(20)
-                .width(Fill),
-                container(
-                    button(material_symbols::label(
-                        material_symbols::icon::CLOSE,
-                        "Beenden",
-                    ))
-                    .on_press(Message::Exit),
-                )
-                .align_x(Horizontal::Right)
-                .style(container::bordered_box)
-            ]
-            .spacing(20)
-            .padding(20)
+            build_footer_controls(self, self.window_width < COMPACT_FOOTER_THRESHOLD)
         };
 
         column![
@@ -585,6 +539,135 @@ impl State {
             Task::perform(async { () }, |_| Message::ConvertDone)
         }
     }
+}
+
+fn build_footer_controls(state: &State, compact: bool) -> Element<'_, Message> {
+    let convert_selected_button = footer_secondary_button(
+        material_symbols::icon::REDO,
+        "Neu umwandeln",
+        state
+            .has_selected_files()
+            .then_some(Message::ConvertSelected),
+        compact,
+    );
+
+    let add_files_button = footer_secondary_button(
+        material_symbols::icon::ADD,
+        "Dateien hinzufügen",
+        Some(Message::AddFiles),
+        compact,
+    );
+
+    let remove_files_button = footer_secondary_button(
+        material_symbols::icon::DELETE,
+        "Dateien entfernen",
+        state
+            .has_selected_files()
+            .then_some(Message::RemoveSelectedFiles),
+        compact,
+    );
+
+    let go_back_button = footer_secondary_button(
+        material_symbols::icon::ARROW_BACK,
+        "Zurück",
+        Some(Message::GoToWelcome),
+        compact,
+    );
+
+    let exit_button = footer_primary_button(
+        material_symbols::icon::CLOSE,
+        "Beenden",
+        Some(Message::Exit),
+        compact,
+    );
+
+    row![
+        row![
+            convert_selected_button,
+            add_files_button,
+            remove_files_button
+        ]
+        .spacing(20)
+        .width(Fill),
+        row![go_back_button, exit_button].spacing(20)
+    ]
+    .spacing(20)
+    .padding(20)
+    .into()
+}
+
+fn footer_secondary_button(
+    icon: char,
+    label: &'static str,
+    message: Option<Message>,
+    compact: bool,
+) -> Element<'static, Message> {
+    let button = footer_button(icon, label, message, compact).style(button::secondary);
+
+    footer_button_container(button, label, compact).into()
+}
+
+fn footer_primary_button(
+    icon: char,
+    label: &'static str,
+    message: Option<Message>,
+    compact: bool,
+) -> Element<'static, Message> {
+    footer_button_container(footer_button(icon, label, message, compact), label, compact).into()
+}
+
+fn footer_button(
+    icon: char,
+    label: &'static str,
+    message: Option<Message>,
+    compact: bool,
+) -> iced::widget::Button<'static, Message> {
+    let content: Element<'static, Message> = if compact {
+        container(material_symbols::sized(icon, 16.0))
+            .center_x(Fill)
+            .center_y(Fill)
+            .into()
+    } else {
+        row![material_symbols::sized(icon, 16.0), text(label).size(14)]
+            .spacing(6)
+            .align_y(Center)
+            .into()
+    };
+
+    let button = button(content).padding(if compact { [0, 0] } else { [6, 10] });
+    let button = if let Some(message) = message {
+        button.on_press(message)
+    } else {
+        button
+    };
+
+    if compact {
+        button.width(32).height(32)
+    } else {
+        button
+    }
+}
+
+fn footer_button_container<'a>(
+    button: iced::widget::Button<'a, Message>,
+    label: &'static str,
+    compact: bool,
+) -> Element<'a, Message> {
+    let content: Element<'a, Message> = if compact {
+        tooltip(
+            button,
+            container(text(label)).style(container::bordered_box),
+            tooltip::Position::Top,
+        )
+        .into()
+    } else {
+        button.into()
+    };
+
+    container(content)
+        .align_x(Horizontal::Right)
+        .style(container::bordered_box)
+        .into()
 }
 
 fn build_file_queue_from_paths(paths: Vec<PathBuf>) -> Vec<ImpulsFileType> {

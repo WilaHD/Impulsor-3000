@@ -223,6 +223,9 @@ fn handle_window_event(
     _window: window::Id,
 ) -> Option<Message> {
     match event {
+        Event::Window(window::Event::Resized(size)) => {
+            Some(Message::Conversion(conversion::Message::WindowResized(size.width)))
+        }
         Event::Window(window::Event::FileHovered(path)) => Some(Message::FileHovered(path)),
         Event::Window(window::Event::FileDropped(path)) => Some(Message::FileDropped(path)),
         Event::Window(window::Event::FilesHoveredLeft) => Some(Message::FilesHoveredLeft),
