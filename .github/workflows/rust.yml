@@ -135,6 +135,18 @@ jobs:
             "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib" \
             "${APP_BIN}"
 
+      - name: Ad-hoc sign app bundle
+        run: |
+          APP_ROOT="target/release/Impulsor-3000.app"
+          APP_BIN="${APP_ROOT}/Contents/MacOS/impulsor3000"
+          LAME_LIB="${APP_ROOT}/Contents/Resources/libs/lame/mac-arm64/libmp3lame.dylib"
+          PDFIUM_LIB="${APP_ROOT}/Contents/Resources/libs/pdfium/mac-arm64/libpdfium.dylib"
+
+          codesign --force --sign - --timestamp=none "${LAME_LIB}"
+          codesign --force --sign - --timestamp=none "${PDFIUM_LIB}"
+          codesign --force --sign - --timestamp=none "${APP_BIN}"
+          codesign --force --sign - --timestamp=none "${APP_ROOT}"
+
       - name: Validate bundled libraries
         run: |
           APP_ROOT="target/release/Impulsor-3000.app"
@@ -158,6 +170,12 @@ jobs:
           otool -L "${APP_BIN}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib"
           otool -D "${LAME_LIB}" | grep -F "@executable_path/../Resources/libs/lame/mac-arm64/libmp3lame.dylib"
           otool -D "${PDFIUM_LIB}" | grep -F "@loader_path/libpdfium.dylib"
+
+          echo "Code signatures:"
+          codesign --verify --verbose=2 "${LAME_LIB}"
+          codesign --verify --verbose=2 "${PDFIUM_LIB}"
+          codesign --verify --verbose=2 "${APP_BIN}"
+          codesign --verify --deep --strict --verbose=2 "${APP_ROOT}"
 
           set +e
           DYLD_PRINT_LIBRARIES=1 "${APP_BIN}" > app.stdout 2> app.stderr &
