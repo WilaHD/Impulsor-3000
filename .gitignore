@@ -11,3 +11,4 @@ installer/linux/appimage/Impulsor-3000-x86_64.AppImage
 installer/windows/impulsor3000_setup.exe
 installer/windows/install_dir
 archive
+settings.toml

@@ -7,4 +7,5 @@ pub const TITLE: &str = r#"
            \/ |__|                      \/                     \/        \/        \/        \/
 "#;
 
+pub mod app_config;
 pub mod platform_paths;

@@ -14,7 +14,10 @@ pub mod file_icons;
 pub mod material_symbols;
 mod screens;
 
-use impulsor3000::platform_paths;
+use impulsor3000::{
+    app_config::{AppConfig, ThemeMode},
+    platform_paths,
+};
 use screens::{conversion, settings, welcome};
 
 #[cfg(target_os = "linux")]
@@ -44,6 +47,7 @@ pub enum Message {
 struct MainView {
     screen: Screen,
     pdfium: PdfiumLibState,
+    app_config: AppConfig,
     is_drag_hovering: bool,
     hovered_files: Vec<PathBuf>,
     processed_drop_paths: HashSet<PathBuf>,
@@ -69,6 +73,7 @@ impl MainView {
             Self {
                 screen: Screen::Welcome(welcome::State::new()),
                 pdfium: pdfium_lib_state,
+                app_config: AppConfig::load(),
                 is_drag_hovering: false,
                 hovered_files: vec![],
                 processed_drop_paths: HashSet::new(),
@@ -143,7 +148,11 @@ impl MainView {
     }
 
     fn theme(&self) -> Theme {
-        Theme::default()
+        match self.app_config.theme_mode {
+            ThemeMode::Auto => Theme::default(),
+            ThemeMode::Light => Theme::Light,
+            ThemeMode::Dark => Theme::Dark,
+        }
     }
 
     fn subscription(&self) -> Subscription<Message> {
@@ -224,9 +233,9 @@ fn handle_window_event(
     _window: window::Id,
 ) -> Option<Message> {
     match event {
-        Event::Window(window::Event::Resized(size)) => {
-            Some(Message::Conversion(conversion::Message::WindowResized(size.width)))
-        }
+        Event::Window(window::Event::Resized(size)) => Some(Message::Conversion(
+            conversion::Message::WindowResized(size.width),
+        )),
         Event::Window(window::Event::FileHovered(path)) => Some(Message::FileHovered(path)),
         Event::Window(window::Event::FileDropped(path)) => Some(Message::FileDropped(path)),
         Event::Window(window::Event::FilesHoveredLeft) => Some(Message::FilesHoveredLeft),
@@ -250,7 +259,7 @@ impl MainView {
                 task.map(Message::Conversion)
             }
             welcome::Action::OpenSettings => {
-                self.screen = Screen::Settings(settings::State::new());
+                self.screen = Screen::Settings(settings::State::new(self.app_config.theme_mode));
                 Task::none()
             }
             welcome::Action::Exit => window::get_latest().and_then(window::close),
@@ -258,13 +267,27 @@ impl MainView {
     }
 
     fn update_settings(&mut self, message: settings::Message) -> Task<Message> {
-        let Screen::Settings(settings) = &mut self.screen else {
-            return Task::none();
+        let action = {
+            let Screen::Settings(settings) = &mut self.screen else {
+                return Task::none();
+            };
+
+            settings.update(message, &self.pdfium)
         };
 
-        match settings.update(message, &self.pdfium) {
+        match action {
             settings::Action::None => Task::none(),
             settings::Action::Run(task) => task.map(Message::Settings),
+            settings::Action::SaveThemeMode(theme_mode) => {
+                self.app_config.theme_mode = theme_mode;
+
+                let save_error = self.app_config.save().err();
+                if let Screen::Settings(settings) = &mut self.screen {
+                    settings.set_settings_error(save_error);
+                }
+
+                Task::none()
+            }
             settings::Action::OpenWelcome => {
                 self.screen = Screen::Welcome(welcome::State::new());
                 Task::none()

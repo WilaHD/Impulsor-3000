@@ -14,6 +14,9 @@ rust-embed = "8.4.0"
 symphonia = { version = "0.5", features = ["all"] }
 lame = "0.1.3"
 opener = { version = "0.7.2", features = ["reveal"] }
+dirs = "4"
+serde = { version = "1", features = ["derive"] }
+toml = "0.5"
 
 [target.'cfg(windows)'.build-dependencies]
 winres = "0.1"

@@ -1,18 +1,26 @@
 use iced::{
-    widget::{button, column, horizontal_rule, row, scrollable, text},
+    alignment::Horizontal,
+    widget::{button, column, container, horizontal_rule, radio, row, scrollable, text},
     Alignment::Center,
     Element, Task,
 };
+use impulsor3000::app_config::ThemeMode;
 use rfd::FileHandle;
 
 use crate::{impuls::Impuls, ui::PdfiumLibState};
 
 use super::super::{file_background, file_banner};
 
+const SETTINGS_LABEL_WIDTH: u16 = 300;
+const SETTINGS_VALUE_WIDTH: u16 = 380;
+const SETTINGS_TABLE_WIDTH: u16 = SETTINGS_LABEL_WIDTH + SETTINGS_VALUE_WIDTH + 24;
+
 #[derive(Debug, Default)]
 pub struct State {
     is_selecting_templates: bool,
     mode: Mode,
+    theme_mode: ThemeMode,
+    settings_error: Option<String>,
 }
 
 #[derive(Debug, Default)]
@@ -32,6 +40,7 @@ pub struct TemplateValidationResult {
 pub enum Message {
     GoToWelcome,
     ShowOverview,
+    ThemeModeSelected(ThemeMode),
     TestTemplateFileDialog,
     TemplatesPicked(Option<Vec<FileHandle>>),
 }
@@ -39,12 +48,16 @@ pub enum Message {
 pub enum Action {
     None,
     Run(Task<Message>),
+    SaveThemeMode(ThemeMode),
     OpenWelcome,
 }
 
 impl State {
-    pub fn new() -> Self {
-        Self::default()
+    pub fn new(theme_mode: ThemeMode) -> Self {
+        Self {
+            theme_mode,
+            ..Self::default()
+        }
     }
 
     pub fn update(&mut self, message: Message, pdfium: &PdfiumLibState) -> Action {
@@ -53,6 +66,11 @@ impl State {
             Message::ShowOverview => {
                 self.mode = Mode::Default;
                 Action::None
+            }
+            Message::ThemeModeSelected(theme_mode) => {
+                self.theme_mode = theme_mode;
+                self.settings_error = None;
+                Action::SaveThemeMode(theme_mode)
             }
             Message::TestTemplateFileDialog => Action::Run(self.pick_templates()),
             Message::TemplatesPicked(picked_templates) => {
@@ -73,6 +91,10 @@ impl State {
         }
     }
 
+    pub fn set_settings_error(&mut self, error: Option<String>) {
+        self.settings_error = error;
+    }
+
     pub fn view(&self) -> Element<'_, Message> {
         if self.is_selecting_templates {
             return file_background::file_plus().into();
@@ -81,30 +103,61 @@ impl State {
         let title = file_banner::banner();
 
         match &self.mode {
-            Mode::Default => column![
-                title,
-                iced::widget::container(
-                    column![
-                        text("Einstellungen").size(24),
-                        horizontal_rule(1),
-                        row![
-                            text("Impuls-PDF-Vorlage(n) testen").width(300),
-                            button(text(">")).on_press(Message::TestTemplateFileDialog)
-                        ]
-                        .spacing(20)
-                        .align_y(Center),
-                        horizontal_rule(1),
-                        button("zurück")
-                            .style(button::secondary)
-                            .on_press(Message::GoToWelcome)
-                    ]
-                    .spacing(20)
-                    .padding(50)
+            Mode::Default => {
+                let theme_options: Element<'_, Message> = ThemeMode::ALL
+                    .into_iter()
+                    .fold(
+                        iced::widget::Row::new().spacing(20).align_y(Center),
+                        |options, theme_mode| {
+                            options.push(radio(
+                                theme_mode.label(),
+                                theme_mode,
+                                Some(self.theme_mode),
+                                Message::ThemeModeSelected,
+                            ))
+                        },
+                    )
+                    .into();
+
+                let settings_table = column![
+                    horizontal_rule(1),
+                    settings_row("Darstellung", theme_options),
+                    horizontal_rule(1),
+                    settings_row(
+                        "Impuls-PDF-Vorlage(n) testen",
+                        button(text(">")).on_press(Message::TestTemplateFileDialog)
+                    ),
+                    horizontal_rule(1)
+                ]
+                .spacing(16)
+                .width(SETTINGS_TABLE_WIDTH);
+
+                let mut settings = column![
+                    text("Einstellungen").size(24),
+                    container(settings_table).align_x(Horizontal::Center)
+                ]
+                .spacing(24)
+                .padding(50)
+                .align_x(Center);
+
+                if let Some(error) = &self.settings_error {
+                    settings = settings.push(
+                        container(text(error))
+                            .width(SETTINGS_TABLE_WIDTH)
+                            .align_x(Horizontal::Left),
+                    );
+                }
+
+                settings = settings.push(
+                    button("zurück")
+                        .style(button::secondary)
+                        .on_press(Message::GoToWelcome),
+                );
+
+                column![title, iced::widget::container(settings)]
                     .align_x(Center)
-                )
-            ]
-            .align_x(Center)
-            .into(),
+                    .into()
+            }
             Mode::ShowTemplateValidationResults(tvrs) => {
                 let mut content = iced::widget::Column::new().spacing(20);
 
@@ -153,6 +206,23 @@ impl State {
 
         Task::perform(picked_files_future.pick_files(), Message::TemplatesPicked)
     }
+}
+
+fn settings_row<'a>(
+    label: &'a str,
+    value: impl Into<Element<'a, Message>>,
+) -> Element<'a, Message> {
+    row![
+        container(text(label).align_x(Horizontal::Left))
+            .width(SETTINGS_LABEL_WIDTH)
+            .align_x(Horizontal::Left),
+        container(value)
+            .width(SETTINGS_VALUE_WIDTH)
+            .align_x(Horizontal::Left)
+    ]
+    .spacing(24)
+    .align_y(Center)
+    .into()
 }
 
 fn validate_templates(
