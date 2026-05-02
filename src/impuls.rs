@@ -176,28 +176,36 @@ fn get_form_map_value_by_key(
 }
 
 fn try_to_parse_losung(pdf_losung: &str) -> Result<(String, String), Box<dyn Error>> {
-    let pdf_losung_vec = if pdf_losung.contains("\r\n") {
-        pdf_losung.split("\r\n\r\n").collect::<Vec<&str>>()
-    } else if pdf_losung.contains("\r\r") {
-        pdf_losung.split("\r\r").collect::<Vec<&str>>()
-    } else if pdf_losung.contains("\n\r") {
-        pdf_losung.split("\n\r").collect::<Vec<&str>>()
-    } else {
-        pdf_losung.split("\n\n").collect::<Vec<&str>>()
-    };
-
-    let Some(pdf_losung_at) = pdf_losung_vec.get(0) else {
+    let pdf_losung = normalize_line_breaks(pdf_losung);
+    let lines = pdf_losung.lines().collect::<Vec<&str>>();
+    let Some(separator_index) = lines.iter().position(|line| line.trim().is_empty()) else {
         return Err("PDF field 'Losung' could not be parsed correct.".into());
     };
 
-    let Some(pdf_losung_nt) = pdf_losung_vec.get(1) else {
-        return Err("PDF field 'Losung' could not be parsed correct.".into());
-    };
-
-    let pdf_losung_at = pdf_losung_at.trim().to_string();
-    let pdf_losung_nt = pdf_losung_nt.trim().to_string();
+    let pdf_losung_at = lines[..separator_index].join("\n").trim().to_string();
+    let pdf_losung_nt = lines[separator_index + 1..].join("\n").trim().to_string();
 
     return Ok((pdf_losung_at, pdf_losung_nt));
+}
+
+fn normalize_line_breaks(value: &str) -> String {
+    let mut normalized = String::with_capacity(value.len());
+    let mut chars = value.chars().peekable();
+
+    while let Some(char) = chars.next() {
+        match char {
+            '\r' => {
+                if chars.peek() == Some(&'\n') {
+                    chars.next();
+                }
+                normalized.push('\n');
+            }
+            '\n' | '\u{2028}' => normalized.push('\n'),
+            _ => normalized.push(char),
+        }
+    }
+
+    normalized
 }
 
 struct PdfFormValues {
@@ -224,5 +232,45 @@ impl PdfFormValues {
 [audio mp3 = "https://URL[...].mp3"]"#,
             self.losung_at, self.losung_nt, self.text, self.autor
         );
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_losung_split_by_blank_line_independent_of_line_break_style() {
+        for separator in [
+            "\n\n",
+            "\r\n\r\n",
+            "\r\r",
+            "\n\r",
+            "\u{2028}\u{2028}",
+            "\r\u{2028}",
+        ] {
+            let parsed = try_to_parse_losung(&format!("AT{separator}NT")).unwrap();
+
+            assert_eq!(parsed, ("AT".to_string(), "NT".to_string()));
+        }
+    }
+
+    #[test]
+    fn trims_parsed_losung_parts() {
+        let parsed = try_to_parse_losung("  AT  \r\n\r\n  NT  ").unwrap();
+
+        assert_eq!(parsed, ("AT".to_string(), "NT".to_string()));
+    }
+
+    #[test]
+    fn allows_whitespace_in_blank_line_separator() {
+        let parsed = try_to_parse_losung("AT\n \t \nNT").unwrap();
+
+        assert_eq!(parsed, ("AT".to_string(), "NT".to_string()));
+    }
+
+    #[test]
+    fn rejects_losung_without_blank_line_separator() {
+        assert!(try_to_parse_losung("AT\nNT").is_err());
     }
 }
