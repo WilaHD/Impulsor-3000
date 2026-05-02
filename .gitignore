@@ -1,3 +1,4 @@
+.cargo/config.toml
 .codex
 .vscode
 Impulsor-3000.code-workspace
