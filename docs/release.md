@@ -15,6 +15,10 @@ Use these commit prefixes on changes that should affect the next version:
 
 Create a GitHub Actions secret named `RELEASE_PLZ_TOKEN`.
 
+The release PR uses GitHub's built-in `GITHUB_TOKEN`. The `RELEASE_PLZ_TOKEN`
+is used only by the tag-creating release job so the tag push can trigger the
+existing tag-based packaging workflow.
+
 Create a fine-grained personal access token:
 
 1. Open your GitHub account settings.
