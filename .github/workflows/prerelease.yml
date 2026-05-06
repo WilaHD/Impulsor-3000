@@ -1,0 +1,45 @@
+name: Prerelease
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Prerelease version, for example 0.3.0-beta.1"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  create-prerelease-tag:
+    name: Create prerelease tag
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_PLZ_TOKEN }}
+
+      - name: Create prerelease tag
+        env:
+          VERSION_INPUT: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+
+          VERSION="${VERSION_INPUT#v}"
+          if ! [[ "${VERSION}" =~ ^[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z][0-9A-Za-z.-]*$ ]]; then
+            echo "Version must be a semantic prerelease like 0.3.0-beta.1"
+            exit 1
+          fi
+
+          TAG="v${VERSION}"
+          if git rev-parse --verify --quiet "${TAG}" >/dev/null; then
+            echo "Tag ${TAG} already exists"
+            exit 1
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag -a "${TAG}" -m "Prerelease ${TAG}"
+          git push origin "${TAG}"

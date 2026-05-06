@@ -1,10 +1,17 @@
 !define APP_NAME "Impulsor-3000"
 !define COMP_NAME "Wilhelm Rosinski / Kirchgemeinden im Striegistal"
 !define WEB_SITE "https://kirchen-zschopau-striegis/"
-!define VERSION "0.2.2.0"
+!ifndef APP_VERSION
+!define APP_VERSION "0.2.2"
+!endif
+!ifndef WINDOWS_PRODUCT_VERSION
+!define WINDOWS_PRODUCT_VERSION "${APP_VERSION}.0"
+!endif
 !define COPYRIGHT "Kirchgemeinden im Striegistal, 2025"
 !define DESCRIPTION "Programm zur Umwandlung der Impuls-PDF-Dateien in Bilder und Text-Vorlagen für Wordpress. "
+!ifndef INSTALLER_NAME
 !define INSTALLER_NAME "impulsor3000_setup.exe"
+!endif
 !define MAIN_APP_EXE "impulsor3000.exe"
 !define ICON "icon.ico"
 !define BANNER "banner.bmp"
@@ -32,12 +39,13 @@ var SM_Folder
 
 ######################################################################
 
-VIProductVersion  "${VERSION}"
+VIProductVersion  "${WINDOWS_PRODUCT_VERSION}"
 VIAddVersionKey "ProductName"  "${APP_NAME}"
 VIAddVersionKey "CompanyName"  "${COMP_NAME}"
 VIAddVersionKey "LegalCopyright"  "${COPYRIGHT}"
 VIAddVersionKey "FileDescription"  "${DESCRIPTION}"
-VIAddVersionKey "FileVersion"  "${VERSION}"
+VIAddVersionKey "FileVersion"  "${APP_VERSION}"
+VIAddVersionKey "ProductVersion"  "${APP_VERSION}"
 
 ######################################################################
 
@@ -138,7 +146,7 @@ WriteRegStr ${REG_ROOT} "${REG_APP_PATH}" "" "$INSTDIR\${MAIN_APP_EXE}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayName" "${APP_NAME}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "UninstallString" "$INSTDIR\uninstall.exe"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayIcon" "$INSTDIR\${MAIN_APP_EXE}"
-WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayVersion" "${VERSION}"
+WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "DisplayVersion" "${APP_VERSION}"
 WriteRegStr ${REG_ROOT} "${UNINSTALL_PATH}"  "Publisher" "${COMP_NAME}"
 
 !ifdef WEB_SITE
