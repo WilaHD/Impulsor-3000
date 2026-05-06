@@ -49,10 +49,17 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
-      - name: Open or update release PR
-        uses: release-plz/action@v0.5
+      - uses: taiki-e/install-action@v2
         with:
-          command: release-pr
-          verbose: true
+          tool: release-plz
+
+      - name: Open or update release PR
+        run: |
+          release-plz release-pr \
+            --git-token "$GITHUB_TOKEN" \
+            --repo-url "https://github.com/${GITHUB_REPOSITORY}" \
+            --forge github \
+            --verbose
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RELEASE_PLZ_LOG: debug
