@@ -123,6 +123,8 @@ impl State {
                     horizontal_rule(1),
                     settings_row("Darstellung", theme_options),
                     horizontal_rule(1),
+                    settings_row("App-Version", text(current_app_version())),
+                    horizontal_rule(1),
                     settings_row(
                         "Impuls-PDF-Vorlage(n) testen",
                         button(text(">")).on_press(Message::TestTemplateFileDialog)
@@ -206,6 +208,10 @@ impl State {
 
         Task::perform(picked_files_future.pick_files(), Message::TemplatesPicked)
     }
+}
+
+fn current_app_version() -> &'static str {
+    option_env!("IMPULSOR_APP_VERSION_DISPLAY").unwrap_or(env!("CARGO_PKG_VERSION"))
 }
 
 fn settings_row<'a>(

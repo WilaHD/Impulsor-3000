@@ -29,13 +29,16 @@ jobs:
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             APP_VERSION="${GITHUB_REF_NAME#v}"
+            APP_GIT_TAG="${GITHUB_REF_NAME}"
           else
             APP_VERSION="$(cargo pkgid | sed 's/.*@//')"
+            APP_GIT_TAG=""
           fi
           echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
+          echo "APP_GIT_TAG=${APP_GIT_TAG}" >> "$GITHUB_ENV"
           echo "App version: ${APP_VERSION}"
       - name: Build release
-        run: IMPULSOR_BUILD_VERSION="${APP_VERSION}" cargo build --verbose --release
+        run: IMPULSOR_BUILD_VERSION="${APP_VERSION}" IMPULSOR_GIT_TAG="${APP_GIT_TAG}" cargo build --verbose --release
       # - name: Run tests
       #   run:  cargo test --verbose
       - name: Upload binary
@@ -63,15 +66,19 @@ jobs:
         run: |
           if ($env:GITHUB_REF_TYPE -eq "tag") {
             $appVersion = $env:GITHUB_REF_NAME -replace '^v', ''
+            $appGitTag = $env:GITHUB_REF_NAME
           } else {
             $appVersion = (cargo pkgid) -replace '^.*@', ''
+            $appGitTag = ''
           }
           "APP_VERSION=$appVersion" >> $env:GITHUB_ENV
+          "APP_GIT_TAG=$appGitTag" >> $env:GITHUB_ENV
           "App version: $appVersion"
       - name: Build release
         shell: pwsh
         run: |
           $env:IMPULSOR_BUILD_VERSION = $env:APP_VERSION
+          $env:IMPULSOR_GIT_TAG = $env:APP_GIT_TAG
           cargo build --verbose --release
       # - name: Run tests
       #   run:  cargo test --verbose
@@ -99,13 +106,16 @@ jobs:
         run: |
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             APP_VERSION="${GITHUB_REF_NAME#v}"
+            APP_GIT_TAG="${GITHUB_REF_NAME}"
           else
             APP_VERSION="$(cargo pkgid | sed 's/.*@//')"
+            APP_GIT_TAG=""
           fi
           echo "APP_VERSION=${APP_VERSION}" >> "$GITHUB_ENV"
+          echo "APP_GIT_TAG=${APP_GIT_TAG}" >> "$GITHUB_ENV"
           echo "App version: ${APP_VERSION}"
       - name: Build release
-        run: IMPULSOR_BUILD_VERSION="${APP_VERSION}" cargo build --verbose --release
+        run: IMPULSOR_BUILD_VERSION="${APP_VERSION}" IMPULSOR_GIT_TAG="${APP_GIT_TAG}" cargo build --verbose --release
       # - name: Run tests
       #   run: cargo test --verbose
       - name: Upload binary

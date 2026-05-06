@@ -3,9 +3,12 @@ extern crate winres;
 
 use std::path::PathBuf;
 
-fn manifest_path(relative: &str) -> PathBuf {
+fn manifest_dir() -> PathBuf {
     PathBuf::from(std::env::var("CARGO_MANIFEST_DIR").expect("CARGO_MANIFEST_DIR not set"))
-        .join(relative)
+}
+
+fn manifest_path(relative: &str) -> PathBuf {
+    manifest_dir().join(relative)
 }
 
 fn app_version() -> String {
@@ -16,14 +19,73 @@ fn app_version() -> String {
         .expect("CARGO_PKG_VERSION not set")
 }
 
-fn export_app_version() {
-    println!("cargo:rustc-env=IMPULSOR_APP_VERSION={}", app_version());
+fn git_tag() -> String {
+    println!("cargo:rerun-if-env-changed=IMPULSOR_GIT_TAG");
+
+    if let Ok(tag) = std::env::var("IMPULSOR_GIT_TAG") {
+        if !tag.is_empty() {
+            return tag;
+        }
+    }
+
+    git_output(["describe", "--tags", "--exact-match", "HEAD"]).unwrap_or_default()
+}
+
+fn app_version_display(app_version: &str) -> String {
+    let exact_tag = git_tag();
+    if !exact_tag.is_empty() {
+        return exact_tag;
+    }
+
+    let latest_known_version = git_output(["describe", "--tags", "--abbrev=0", "HEAD"])
+        .unwrap_or_else(|| format!("v{app_version}"));
+
+    match git_output(["rev-parse", "--short=12", "HEAD"]) {
+        Some(commit_sha) => format!("{latest_known_version} ({commit_sha})"),
+        None => latest_known_version,
+    }
+}
+
+fn git_output<const N: usize>(args: [&str; N]) -> Option<String> {
+    track_git_metadata_inputs();
+
+    std::process::Command::new("git")
+        .args(args)
+        .current_dir(manifest_dir())
+        .output()
+        .ok()
+        .filter(|output| output.status.success())
+        .and_then(|output| String::from_utf8(output.stdout).ok())
+        .map(|tag| tag.trim().to_string())
+        .filter(|output| !output.is_empty())
+}
+
+fn track_git_metadata_inputs() {
+    let git_dir = manifest_path(".git");
+
+    if git_dir.is_dir() {
+        println!("cargo:rerun-if-changed={}", git_dir.join("HEAD").display());
+        println!(
+            "cargo:rerun-if-changed={}",
+            git_dir.join("packed-refs").display()
+        );
+        println!("cargo:rerun-if-changed={}", git_dir.join("refs").display());
+    }
+}
+
+fn export_build_metadata(app_version: &str) {
+    println!("cargo:rustc-env=IMPULSOR_APP_VERSION={app_version}");
+    println!("cargo:rustc-env=IMPULSOR_GIT_TAG={}", git_tag());
+    println!(
+        "cargo:rustc-env=IMPULSOR_APP_VERSION_DISPLAY={}",
+        app_version_display(app_version)
+    );
 }
 
 #[cfg(windows)]
 fn main() {
     let app_version = app_version();
-    println!("cargo:rustc-env=IMPULSOR_APP_VERSION={app_version}");
+    export_build_metadata(&app_version);
 
     let lame_dir = manifest_path("libs/lame/win-x64");
 
@@ -66,7 +128,8 @@ fn windows_numeric_version(version: &str) -> u64 {
 
 #[cfg(target_os = "macos")]
 fn main() {
-    export_app_version();
+    let app_version = app_version();
+    export_build_metadata(&app_version);
 
     let lame_dir = manifest_path("libs/lame/mac-arm64");
 
@@ -77,7 +140,8 @@ fn main() {
 
 #[cfg(all(unix, not(target_os = "macos")))]
 fn main() {
-    export_app_version();
+    let app_version = app_version();
+    export_build_metadata(&app_version);
 
     let lame_dir = manifest_path("libs/lame/linux-x64");
 
