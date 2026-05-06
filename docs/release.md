@@ -15,6 +15,10 @@ Use these commit prefixes on changes that should affect the next version:
 
 Create a GitHub Actions secret named `RELEASE_PLZ_TOKEN`.
 
+The release PR uses GitHub's built-in `GITHUB_TOKEN`. The `RELEASE_PLZ_TOKEN`
+is used only by the tag-creating release job so the tag push can trigger the
+existing tag-based packaging workflow.
+
 Create a fine-grained personal access token:
 
 1. Open your GitHub account settings.
@@ -48,9 +52,9 @@ Add the token in GitHub:
 
 If `release-plz release-pr` fails with HTTP 422, inspect the lines above the
 summary in the workflow log. Common causes are missing pull request creation
-permission, tag/branch protection rules, or an existing release PR branch that
-GitHub rejects. The workflow enables debug logging for `release-plz` to make the
-GitHub validation reason visible.
+permission, tag/branch protection rules, an existing release PR branch that
+GitHub rejects, or trying to use a personal access token for the PR creation
+path instead of the built-in `GITHUB_TOKEN`.
 
 ## Release flow
 
