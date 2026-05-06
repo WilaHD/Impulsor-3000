@@ -50,6 +50,11 @@ jobs:
 
       - uses: dtolnay/rust-toolchain@stable
 
+      - name: Install release-pr native dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes libmp3lame-dev
+
       - uses: taiki-e/install-action@v2
         with:
           tool: release-plz
