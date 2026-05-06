@@ -30,6 +30,13 @@ If the repository uses protected tags or tag rules, the token also needs enough
 permission to create tags that match `v*`, or the tag rules need to allow this
 token to create them.
 
+Also check repository Actions settings:
+
+1. Open repository `Settings`.
+2. Go to `Actions` -> `General`.
+3. Under `Workflow permissions`, allow read and write permissions.
+4. Enable `Allow GitHub Actions to create and approve pull requests`.
+
 Add the token in GitHub:
 
 1. Open the repository on GitHub.
@@ -38,6 +45,12 @@ Add the token in GitHub:
 4. Choose `New repository secret`.
 5. Name it `RELEASE_PLZ_TOKEN`.
 6. Paste the token value and save it.
+
+If `release-plz release-pr` fails with HTTP 422, inspect the lines above the
+summary in the workflow log. Common causes are missing pull request creation
+permission, tag/branch protection rules, or an existing release PR branch that
+GitHub rejects. The workflow enables debug logging for `release-plz` to make the
+GitHub validation reason visible.
 
 ## Release flow
 
