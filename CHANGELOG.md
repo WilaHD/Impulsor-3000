@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0](https://github.com/WilaHD/Impulsor-3000/compare/v0.3.0...v0.4.0) - 2026-08-09
+
+### Added
+
+- settings: copy into new template
+
+### Other
+
+- add windows installation guide if blocked by smartscreen
+
 ## [0.3.0](https://github.com/WilaHD/Impulsor-3000/compare/v0.2.2...v0.3.0) - 2026-05-06
 
 ### Added
