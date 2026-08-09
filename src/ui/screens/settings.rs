@@ -2,7 +2,7 @@ use iced::{
     alignment::Horizontal,
     widget::{button, column, container, horizontal_rule, radio, row, scrollable, text},
     Alignment::Center,
-    Element, Task,
+    Element, Fill, Task,
 };
 use impulsor3000::app_config::ThemeMode;
 use rfd::FileHandle;
@@ -43,6 +43,7 @@ pub enum Message {
     ThemeModeSelected(ThemeMode),
     TestTemplateFileDialog,
     TemplatesPicked(Option<Vec<FileHandle>>),
+    OpenTemplateCopy,
 }
 
 pub enum Action {
@@ -50,6 +51,7 @@ pub enum Action {
     Run(Task<Message>),
     SaveThemeMode(ThemeMode),
     OpenWelcome,
+    OpenTemplateCopy,
 }
 
 impl State {
@@ -73,6 +75,7 @@ impl State {
                 Action::SaveThemeMode(theme_mode)
             }
             Message::TestTemplateFileDialog => Action::Run(self.pick_templates()),
+            Message::OpenTemplateCopy => Action::OpenTemplateCopy,
             Message::TemplatesPicked(picked_templates) => {
                 self.is_selecting_templates = false;
 
@@ -129,6 +132,11 @@ impl State {
                         "Impuls-PDF-Vorlage(n) testen",
                         button(text(">")).on_press(Message::TestTemplateFileDialog)
                     ),
+                    horizontal_rule(1),
+                    settings_row(
+                        "Kopie in neue Vorlage",
+                        button(text(">")).on_press(Message::OpenTemplateCopy)
+                    ),
                     horizontal_rule(1)
                 ]
                 .spacing(16)
@@ -150,15 +158,24 @@ impl State {
                     );
                 }
 
-                settings = settings.push(
-                    button("zurück")
-                        .style(button::secondary)
-                        .on_press(Message::GoToWelcome),
-                );
-
-                column![title, iced::widget::container(settings)]
-                    .align_x(Center)
-                    .into()
+                column![
+                    title,
+                    scrollable(container(settings).center_x(Fill))
+                        .width(Fill)
+                        .height(Fill),
+                    horizontal_rule(1),
+                    container(
+                        button("Zurück")
+                            .style(button::secondary)
+                            .on_press(Message::GoToWelcome)
+                    )
+                    .width(Fill)
+                    .padding(20)
+                    .align_x(Horizontal::Right),
+                ]
+                .align_x(Center)
+                .height(Fill)
+                .into()
             }
             Mode::ShowTemplateValidationResults(tvrs) => {
                 let mut content = iced::widget::Column::new().spacing(20);
@@ -181,18 +198,31 @@ impl State {
                     }
                 }
 
-                column![
-                    title,
+                let results = column![
                     text("Testergebnisse").size(24),
                     horizontal_rule(1),
-                    scrollable(content),
-                    button(text("zurück").center())
-                        .style(button::secondary)
-                        .on_press(Message::ShowOverview)
+                    scrollable(content).height(Fill),
                 ]
                 .spacing(20)
                 .padding(50)
+                .width(SETTINGS_TABLE_WIDTH)
+                .height(Fill);
+
+                column![
+                    title,
+                    container(results).width(Fill).height(Fill).center_x(Fill),
+                    horizontal_rule(1),
+                    container(
+                        button("Zurück")
+                            .style(button::secondary)
+                            .on_press(Message::ShowOverview)
+                    )
+                    .width(Fill)
+                    .padding(20)
+                    .align_x(Horizontal::Right),
+                ]
                 .align_x(Center)
+                .height(Fill)
                 .into()
             }
         }

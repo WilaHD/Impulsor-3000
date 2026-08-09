@@ -1,12 +1,23 @@
-use std::{collections::HashMap, error::Error, fs::File};
+use std::{
+    collections::{HashMap, HashSet},
+    error::Error,
+    fs::File,
+    path::Path,
+};
 
 use pdfium_render::prelude::{
-    PdfDocument, PdfPageRenderRotation, PdfRenderConfig, Pdfium, PdfiumError,
+    PdfDocument, PdfFormFieldCommon, PdfPageRenderRotation, PdfRenderConfig, Pdfium, PdfiumError,
 };
 
 const PDF_FORM_FIELD_NAME_TEXT: &str = "Text Tagesimpuls";
 const PDF_FORM_FIELD_NAME_LOSUNG: &str = "Losung";
 const PDF_FORM_FIELD_NAME_AUTOR: &str = "Autor";
+
+pub const IMPULS_FORM_FIELD_NAMES: [&str; 3] = [
+    PDF_FORM_FIELD_NAME_TEXT,
+    PDF_FORM_FIELD_NAME_LOSUNG,
+    PDF_FORM_FIELD_NAME_AUTOR,
+];
 
 #[derive(Debug)]
 pub struct ImpulsModel {
@@ -163,6 +174,100 @@ impl<'a> Impuls<'a> {
         }
         return Ok(map_pdf);
     }
+}
+
+/// Copies the three Impuls text fields from `source_path` into a fresh instance of
+/// `template_path` and saves it at `destination_path`.
+///
+/// The source document is never modified by this function. Callers can therefore
+/// safely write to a temporary path before replacing or moving files.
+pub fn copy_impuls_fields_to_template(
+    source_path: &Path,
+    template_path: &Path,
+    destination_path: &Path,
+    pdfium: &Pdfium,
+) -> Result<(), String> {
+    let source_document = pdfium
+        .load_pdf_from_file(source_path, None)
+        .map_err(|error| format!("Quell-PDF konnte nicht geöffnet werden: {error}"))?;
+    let source_values = read_named_impuls_form_values(&source_document)?;
+
+    let template_document = pdfium
+        .load_pdf_from_file(template_path, None)
+        .map_err(|error| format!("Neue Vorlage konnte nicht geöffnet werden: {error}"))?;
+    let mut copied_fields = HashSet::new();
+
+    for page in template_document.pages().iter() {
+        for mut annotation in page.annotations().iter() {
+            let Some(field) = annotation.as_form_field_mut() else {
+                continue;
+            };
+
+            let name = field.name().unwrap_or_default();
+            let Some(value) = source_values.get(name.as_str()) else {
+                continue;
+            };
+            let Some(text_field) = field.as_text_field_mut() else {
+                return Err(format!(
+                    "Feld '{name}' in der neuen Vorlage ist kein Textfeld."
+                ));
+            };
+
+            text_field
+                .set_value(value)
+                .map_err(|error| format!("Feld '{name}' konnte nicht gesetzt werden: {error}"))?;
+            copied_fields.insert(name);
+        }
+    }
+
+    for name in IMPULS_FORM_FIELD_NAMES {
+        if !copied_fields.contains(name) {
+            return Err(format!(
+                "Feld '{name}' wurde in der neuen Vorlage nicht gefunden."
+            ));
+        }
+    }
+
+    template_document
+        .save_to_file(destination_path)
+        .map_err(|error| format!("Neue PDF konnte nicht gespeichert werden: {error}"))
+}
+
+fn read_named_impuls_form_values(
+    document: &PdfDocument<'_>,
+) -> Result<HashMap<String, String>, String> {
+    if document.form().is_none() {
+        return Err("Quell-PDF enthält kein PDF-Formular.".to_string());
+    }
+
+    let mut result = HashMap::new();
+
+    for page in document.pages().iter() {
+        for annotation in page.annotations().iter() {
+            let Some(field) = annotation.as_form_field() else {
+                continue;
+            };
+            let name = field.name().unwrap_or_default();
+            if !IMPULS_FORM_FIELD_NAMES.contains(&name.as_str()) {
+                continue;
+            }
+
+            let Some(text_field) = field.as_text_field() else {
+                return Err(format!("Feld '{name}' in der Quell-PDF ist kein Textfeld."));
+            };
+            result.insert(name, text_field.value().unwrap_or_default());
+        }
+    }
+
+    for name in IMPULS_FORM_FIELD_NAMES {
+        if !result.contains_key(name) {
+            return Err(format!(
+                "Feld '{name}' wurde in der Quell-PDF nicht gefunden."
+            ));
+        }
+    }
+
+    Ok(result)
 }
 
 fn get_form_map_value_by_key(

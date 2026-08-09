@@ -9,6 +9,7 @@ pub const FONT: Font = Font::with_name("Material Symbols Rounded");
 pub mod icon {
     pub const ADD: char = '\u{e145}';
     pub const ARROW_BACK: char = '\u{e5c4}';
+    pub const CHECK: char = '\u{e5ca}';
     pub const CLOSE: char = '\u{e5cd}';
     pub const DELETE: char = '\u{e872}';
     pub const INFO: char = '\u{e88e}';

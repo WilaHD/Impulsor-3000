@@ -18,7 +18,7 @@ use impulsor3000::{
     app_config::{AppConfig, ThemeMode},
     platform_paths,
 };
-use screens::{conversion, settings, welcome};
+use screens::{conversion, settings, template_copy, welcome};
 
 #[cfg(target_os = "linux")]
 const WAYLAND_APPLICATION_ID: &str = "impulsor3000";
@@ -32,6 +32,7 @@ enum Screen {
     Welcome(welcome::State),
     Settings(settings::State),
     Conversion(conversion::State),
+    TemplateCopy(template_copy::State),
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +40,7 @@ pub enum Message {
     Welcome(welcome::Message),
     Settings(settings::Message),
     Conversion(conversion::Message),
+    TemplateCopy(template_copy::Message),
     FileHovered(PathBuf),
     FileDropped(PathBuf),
     FilesHoveredLeft,
@@ -91,6 +93,7 @@ impl MainView {
             Message::Welcome(message) => self.update_welcome(message),
             Message::Settings(message) => self.update_settings(message),
             Message::Conversion(message) => self.update_conversion(message),
+            Message::TemplateCopy(message) => self.update_template_copy(message),
             Message::FileHovered(path) => {
                 self.is_drag_hovering = true;
                 self.processed_drop_paths.clear();
@@ -128,6 +131,7 @@ impl MainView {
             Screen::Welcome(welcome) => welcome.view(&self.pdfium).map(Message::Welcome),
             Screen::Settings(settings) => settings.view().map(Message::Settings),
             Screen::Conversion(conversion) => conversion.view().map(Message::Conversion),
+            Screen::TemplateCopy(template_copy) => template_copy.view().map(Message::TemplateCopy),
         };
 
         if self.is_drag_hovering {
@@ -292,6 +296,33 @@ impl MainView {
                 self.screen = Screen::Welcome(welcome::State::new());
                 Task::none()
             }
+            settings::Action::OpenTemplateCopy => {
+                self.screen = Screen::TemplateCopy(template_copy::State::new());
+                Task::none()
+            }
+        }
+    }
+
+    fn update_template_copy(&mut self, message: template_copy::Message) -> Task<Message> {
+        let action = {
+            let Screen::TemplateCopy(template_copy) = &mut self.screen else {
+                return Task::none();
+            };
+
+            template_copy.update(message, &self.pdfium)
+        };
+
+        match action {
+            template_copy::Action::None => Task::none(),
+            template_copy::Action::Run(task) => task.map(Message::TemplateCopy),
+            template_copy::Action::RevealFile(path) => {
+                let _ = opener::reveal(path);
+                Task::none()
+            }
+            template_copy::Action::OpenSettings => {
+                self.screen = Screen::Settings(settings::State::new(self.app_config.theme_mode));
+                Task::none()
+            }
         }
     }
 
@@ -316,7 +347,7 @@ impl MainView {
                     conversion.replace_files_from_paths(paths)
                 }
             }
-            Screen::Welcome(_) | Screen::Settings(_) => {
+            Screen::Welcome(_) | Screen::Settings(_) | Screen::TemplateCopy(_) => {
                 let mut conversion = conversion::State::new();
                 let action = conversion.replace_files_from_paths(paths);
                 self.screen = Screen::Conversion(conversion);
