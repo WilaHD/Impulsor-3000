@@ -15,11 +15,13 @@ if [ -n "${APP_VERSION}" ]; then
 fi
 cp ../../../target/release/impulsor3000         ${APPDIR}/impulsor3000
 cp ../../../imgs/logo.png                       ${APPDIR}/impulsor3000.png
+cp ../../../fonts/LiberationSans-LICENSE.txt     ${APPDIR}/LiberationSans-LICENSE.txt
 cp run.sh                                       ${APPDIR}/run.sh
 
 # appimagetool requires the files to be readable/executable by everyone
 chmod 755 ${APPDIR}/impulsor3000
 chmod 755 ${APPDIR}/run.sh
 chmod a+r ${APPDIR}/impulsor3000.desktop ${APPDIR}/impulsor3000.png
+chmod a+r ${APPDIR}/LiberationSans-LICENSE.txt
 chmod 755 ${APPDIR}
 cd ${APPDIR} && ln -sf ./run.sh ./AppRun

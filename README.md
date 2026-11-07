@@ -36,6 +36,12 @@ Versionen für weitere Plattformen sind nicht verfügbar.
 &larr; App für MacOS hier herunterladen und Zipp-Datei entpacken.
 -->
 
+## PDF-Konvertierung
+
+Die erste Seite wird mit `hayro` in ein JPEG mit höchstens etwa 1600 × 2000 Pixeln umgewandelt. Formularwerte werden mit `pdf_oxide` gelesen und an ihren Feldpositionen gezeichnet. Der Zeilenabstand ist in den Einstellungen zwischen 80 und 250 % wählbar; der Standardwert beträgt 133 %. Verfügbares Arial wird bevorzugt; andernfalls verwendet das Programm das mitgelieferte Liberation Sans und zeigt beim Start eine Warnung. Die Ersatzschrift ist unter der [SIL Open Font License 1.1](./fonts/LiberationSans-LICENSE.txt) lizenziert.
+
+PDF-Vorlagen bleiben beim Kopieren der Formularwerte bearbeitbar. Manche PDF-Betrachter aktualisieren ihre Felddarstellung erst beim Öffnen; das erzeugte JPEG verwendet die gespeicherten Werte direkt. Die Bildausgabe unterstützt derzeit linksbündige Textfelder auf nicht gedrehten PDF-Seiten ohne weitere Anmerkungen. Nicht unterstützte Inhalte werden als Fehler gemeldet. Überlange Feldtexte werden im Bild am Feldrand abgeschnitten; ein Warnsymbol zeigt die betroffenen Felder beim Darüberfahren an.
+
 ## Audio-Konvertierung
 
 Audiodateien im Format M4A, OGG und MP4 werden mit Symphonia dekodiert und mit `rusty_mp3` als MP3 gespeichert. Mono-Aufnahmen werden als Stereo ausgegeben. Unterstützt werden Mono- und Stereo-Eingaben mit den MP3-Abtastraten 8, 11,025, 12, 16, 22,05, 24, 32, 44,1 und 48 kHz.
@@ -44,5 +50,5 @@ Audiodateien im Format M4A, OGG und MP4 werden mit Symphonia dekodiert und mit `
 
 Hier geht es zur [Dokumentation](./docs/README.md).
 
-Für den Build mit den aktuell gesperrten Abhängigkeiten wird Rust 1.88 oder neuer benötigt.
+Für den Build mit den aktuell gesperrten Abhängigkeiten wird Rust 1.92 oder neuer benötigt.
 Der MP3-Encoder wird auch im Debug-Build optimiert kompiliert, damit die Audio-Konvertierung bei der Entwicklung schnell bleibt. Der erste Build kann dadurch etwas länger dauern.

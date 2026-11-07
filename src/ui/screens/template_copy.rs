@@ -16,7 +16,7 @@ use iced::{
 };
 use rfd::FileHandle;
 
-use crate::{impuls::copy_impuls_fields_to_template, ui::PdfiumLibState};
+use crate::{impuls::copy_impuls_fields_to_template, ui::PdfEngineState};
 
 use super::super::{
     file_background, file_banner, file_icons::build_icon_file_search, material_symbols,
@@ -89,7 +89,7 @@ impl State {
         Self::default()
     }
 
-    pub fn update(&mut self, message: Message, pdfium: &PdfiumLibState) -> Action {
+    pub fn update(&mut self, message: Message, pdf_engine: &PdfEngineState) -> Action {
         match message {
             Message::PickSources => Action::Run(self.pick_sources()),
             Message::SourcesPicked(files) => {
@@ -134,7 +134,7 @@ impl State {
                 self.mode = Mode::Configure;
                 Action::None
             }
-            Message::CopyNext => self.copy_next(pdfium),
+            Message::CopyNext => self.copy_next(pdf_engine),
             Message::CopyPath(path) => Action::Run(iced::clipboard::write(path)),
             Message::RevealFile(path) => Action::RevealFile(path),
             Message::BackToSettings => Action::OpenSettings,
@@ -434,13 +434,13 @@ impl State {
         }
     }
 
-    fn copy_next(&mut self, pdfium: &PdfiumLibState) -> Action {
+    fn copy_next(&mut self, pdf_engine: &PdfEngineState) -> Action {
         let Some(source) = self.source_files.get(self.next_source_index).cloned() else {
             self.mode = Mode::Results;
             return Action::None;
         };
 
-        let result = self.copy_source(&source, pdfium);
+        let result = self.copy_source(&source, pdf_engine);
         self.results.push(CopyResult { source, result });
         self.next_source_index += 1;
 
@@ -452,10 +452,10 @@ impl State {
         }
     }
 
-    fn copy_source(&self, source: &Path, state: &PdfiumLibState) -> Result<PathBuf, String> {
-        let pdfium = match state {
-            PdfiumLibState::Ok(pdfium) => pdfium,
-            PdfiumLibState::NotFound(error) => return Err(error.clone()),
+    fn copy_source(&self, source: &Path, state: &PdfEngineState) -> Result<PathBuf, String> {
+        let pdf_engine = match state {
+            PdfEngineState::Ok(pdf_engine) => pdf_engine,
+            PdfEngineState::NotFound(error) => return Err(error.clone()),
         };
         let template = self
             .template_file
@@ -464,7 +464,8 @@ impl State {
         let destination = self.destination_for(source)?;
         let temporary = temporary_path_near(&destination)?;
 
-        if let Err(error) = copy_impuls_fields_to_template(source, template, &temporary, pdfium) {
+        if let Err(error) = copy_impuls_fields_to_template(source, template, &temporary, pdf_engine)
+        {
             let _ = fs::remove_file(&temporary);
             return Err(error);
         }

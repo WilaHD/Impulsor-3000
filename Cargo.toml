@@ -7,7 +7,9 @@ exclude = ["archive"]
 
 [dependencies]
 iced = { version = "0.13.1", features = ["svg"] }
-pdfium-render =  { version="0.8", features = ["image"]}
+pdf_oxide = "0.3.78"
+hayro = "0.9.0"
+cosmic-text = "0.12.1"
 image = "0"
 rfd = "0.15"
 rust-embed = "8.4.0"

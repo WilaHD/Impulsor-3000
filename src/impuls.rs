@@ -1,12 +1,10 @@
-use std::{
-    collections::{HashMap, HashSet},
-    error::Error,
-    fs::File,
-    path::Path,
-};
+use std::{collections::HashMap, error::Error, fs::File, path::Path};
 
-use pdfium_render::prelude::{
-    PdfDocument, PdfFormFieldCommon, PdfPageRenderRotation, PdfRenderConfig, Pdfium, PdfiumError,
+use crate::pdf_engine::PdfEngine;
+use pdf_oxide::{
+    editor::{DocumentEditor, EditableDocument, FormFieldValue},
+    extractors::forms::FieldType,
+    PdfDocument,
 };
 
 const PDF_FORM_FIELD_NAME_TEXT: &str = "Text Tagesimpuls";
@@ -39,226 +37,154 @@ impl ImpulsModel {
 }
 
 pub struct Impuls<'a> {
-    document_pdf: PdfDocument<'a>,
+    path: std::path::PathBuf,
+    engine: &'a PdfEngine,
 }
 
 #[derive(Debug, Clone)]
 pub enum ImpulsConvertingState {
     Default,
     Success,
+    Warning(String),
     Failure(String),
 }
 
 impl<'a> Impuls<'a> {
     pub fn build_from_model(
-        impuls_model: &ImpulsModel,
-        pdfium: &'a Pdfium,
-    ) -> Result<Impuls<'a>, PdfiumError> {
-        let im = impuls_model;
-
-        match pdfium.load_pdf_from_file(&im.file_path, None) {
-            Ok(document_pdf) => Ok(Impuls {
-                document_pdf: document_pdf,
-            }),
-            Err(e) => return Err(e),
-        }
+        model: &ImpulsModel,
+        engine: &'a PdfEngine,
+    ) -> Result<Self, Box<dyn Error>> {
+        PdfDocument::open(&model.file_path)?;
+        Ok(Self {
+            path: model.file_path.clone().into(),
+            engine,
+        })
     }
 
-    pub fn save_as_jpg(
-        &self,
-        impuls_model: &ImpulsModel,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let file_path = impuls_model.file_path.replace(".pdf", ".jpg");
+    pub fn save_as_jpg(&self, model: &ImpulsModel) -> Result<Vec<String>, Box<dyn Error>> {
+        let mut output = std::path::PathBuf::from(&model.file_path);
+        output.set_extension("jpg");
+        self.engine.render(&self.path, &output)
+    }
 
-        let render_config = PdfRenderConfig::new()
-            .set_target_width(2000)
-            .set_maximum_height(2000)
-            .rotate_if_landscape(PdfPageRenderRotation::Degrees90, true);
-
-        let page_one = self.document_pdf.pages().get(0)?;
-
-        page_one
-            .render_with_config(&render_config)?
-            .as_image()
-            .into_rgb8()
-            .save_with_format(file_path, image::ImageFormat::Jpeg)?;
-
+    pub fn save_as_txt(&self, model: &ImpulsModel) -> Result<(), Box<dyn Error>> {
+        let values = self.read_form_field_values().map_err(|errors| {
+            errors
+                .iter()
+                .map(|e| e.to_string())
+                .collect::<Vec<_>>()
+                .join("\n")
+        })?;
+        let mut output = std::path::PathBuf::from(&model.file_path);
+        output.set_extension("txt");
+        let mut file = File::create(output)?;
+        std::io::Write::write_all(&mut file, values.get_wordpress_string().as_bytes())?;
         Ok(())
     }
 
-    pub fn save_as_txt(
-        &self,
-        impuls_model: &ImpulsModel,
-    ) -> Result<(), Box<dyn std::error::Error>> {
-        let form_values = match self.read_form_field_values() {
-            Ok(ok) => ok,
-            Err(err) => {
-                let mut es = String::new();
-                for e in err {
-                    es = format!("{}\n{}", es, e.to_string());
-                }
-                return Err(es.into());
-            }
-        };
-
-        let wordpress_txt = form_values.get_wordpress_string();
-
-        let file_path = impuls_model.file_path.replace(".pdf", ".txt");
-        let mut file = File::create(file_path)?;
-
-        std::io::Write::write_all(&mut file, wordpress_txt.as_bytes())?;
-
-        Ok(())
-    }
-
-    pub fn test_pdf_form_fields(&self) -> Result<(), Vec<Box<dyn std::error::Error>>> {
-        return self.read_form_field_values().map(|_| ()).map_err(|err| err);
+    pub fn test_pdf_form_fields(&self) -> Result<(), Vec<Box<dyn Error>>> {
+        self.read_form_field_values().map(|_| ())
     }
 
     pub fn test_pdf_form_fields_as_str(&self) -> Result<(), Vec<String>> {
-        return self
-            .test_pdf_form_fields()
-            .map_err(|errs| errs.iter().map(|err| err.to_string()).collect());
+        self.test_pdf_form_fields()
+            .map_err(|errors| errors.iter().map(|error| error.to_string()).collect())
     }
 
-    fn read_form_field_values(&self) -> Result<PdfFormValues, Vec<Box<dyn std::error::Error>>> {
+    fn read_form_field_values(&self) -> Result<PdfFormValues, Vec<Box<dyn Error>>> {
         let mut collected_errors = vec![];
-
-        let map_pdf = match self.read_pdf_file_to_map() {
-            Ok(map) => map,
-            Err(err) => {
-                collected_errors.push(err);
-                return Err(collected_errors);
-            }
-        };
-
+        let map_pdf = self.read_pdf_file_to_map().map_err(|error| vec![error])?;
         let pdf_text = get_form_map_value_by_key(&map_pdf, PDF_FORM_FIELD_NAME_TEXT)
             .map_err(|e| collected_errors.push(e))
             .unwrap_or_default();
         let pdf_autor = get_form_map_value_by_key(&map_pdf, PDF_FORM_FIELD_NAME_AUTOR)
             .map_err(|e| collected_errors.push(e))
             .unwrap_or_default();
-        let pdf_losung = match get_form_map_value_by_key(&map_pdf, PDF_FORM_FIELD_NAME_LOSUNG) {
-            Ok(o) => o,
-            Err(e) => {
+        let pdf_losung =
+            get_form_map_value_by_key(&map_pdf, PDF_FORM_FIELD_NAME_LOSUNG).map_err(|e| {
                 collected_errors.push(e);
-                return Err(collected_errors);
-            }
-        };
-
-        let losung = match try_to_parse_losung(&pdf_losung) {
-            Ok(o) => o,
-            Err(e) => {
-                collected_errors.push(e);
-                return Err(collected_errors);
-            }
-        };
-
-        return Ok(PdfFormValues {
+                std::mem::take(&mut collected_errors)
+            })?;
+        let losung = try_to_parse_losung(&pdf_losung).map_err(|e| {
+            collected_errors.push(e);
+            std::mem::take(&mut collected_errors)
+        })?;
+        Ok(PdfFormValues {
             losung_at: losung.0,
             losung_nt: losung.1,
             text: pdf_text,
             autor: pdf_autor,
-        });
+        })
     }
 
     fn read_pdf_file_to_map(&self) -> Result<HashMap<String, Option<String>>, Box<dyn Error>> {
-        let mut map_pdf = HashMap::new();
-        let Some(form) = self.document_pdf.form() else {
-            return Err(Box::new(PdfiumError::UnknownFormType));
-        };
-        for (key, value) in form.field_values(self.document_pdf.pages()) {
-            if value.is_some() {
-                map_pdf.insert(key, value);
+        let mut editor = DocumentEditor::open(&self.path)?;
+        let mut values = HashMap::new();
+        for field in editor.get_form_fields()? {
+            if let FormFieldValue::Text(value) = field.value() {
+                values.insert(field.name().to_string(), Some(value));
             }
         }
-        return Ok(map_pdf);
+        Ok(values)
     }
 }
 
-/// Copies the three Impuls text fields from `source_path` into a fresh instance of
-/// `template_path` and saves it at `destination_path`.
-///
-/// The source document is never modified by this function. Callers can therefore
-/// safely write to a temporary path before replacing or moving files.
+/// Copy the Impuls fields into a new editable template.
 pub fn copy_impuls_fields_to_template(
     source_path: &Path,
     template_path: &Path,
     destination_path: &Path,
-    pdfium: &Pdfium,
+    _engine: &PdfEngine,
 ) -> Result<(), String> {
-    let source_document = pdfium
-        .load_pdf_from_file(source_path, None)
+    let mut source = DocumentEditor::open(source_path)
         .map_err(|error| format!("Quell-PDF konnte nicht geöffnet werden: {error}"))?;
-    let source_values = read_named_impuls_form_values(&source_document)?;
-
-    let template_document = pdfium
-        .load_pdf_from_file(template_path, None)
+    let source_values = read_named_impuls_form_values(&mut source)?;
+    let mut template = DocumentEditor::open(template_path)
         .map_err(|error| format!("Neue Vorlage konnte nicht geöffnet werden: {error}"))?;
-    let mut copied_fields = HashSet::new();
-
-    for page in template_document.pages().iter() {
-        for mut annotation in page.annotations().iter() {
-            let Some(field) = annotation.as_form_field_mut() else {
-                continue;
-            };
-
-            let name = field.name().unwrap_or_default();
-            let Some(value) = source_values.get(name.as_str()) else {
-                continue;
-            };
-            let Some(text_field) = field.as_text_field_mut() else {
-                return Err(format!(
-                    "Feld '{name}' in der neuen Vorlage ist kein Textfeld."
-                ));
-            };
-
-            text_field
-                .set_value(value)
-                .map_err(|error| format!("Feld '{name}' konnte nicht gesetzt werden: {error}"))?;
-            copied_fields.insert(name);
-        }
-    }
-
+    let fields = template
+        .get_form_fields()
+        .map_err(|error| error.to_string())?;
     for name in IMPULS_FORM_FIELD_NAMES {
-        if !copied_fields.contains(name) {
+        let field = fields
+            .iter()
+            .find(|field| field.name() == name)
+            .ok_or_else(|| format!("Feld '{name}' wurde in der neuen Vorlage nicht gefunden."))?;
+        if field.field_type() != Some(&FieldType::Text) {
             return Err(format!(
-                "Feld '{name}' wurde in der neuen Vorlage nicht gefunden."
+                "Feld '{name}' in der neuen Vorlage ist kein Textfeld."
             ));
         }
+        template
+            .set_form_field_value(name, FormFieldValue::Text(source_values[name].clone()))
+            .map_err(|error| format!("Feld '{name}' konnte nicht gesetzt werden: {error}"))?;
     }
-
-    template_document
-        .save_to_file(destination_path)
+    template
+        .save(destination_path)
         .map_err(|error| format!("Neue PDF konnte nicht gespeichert werden: {error}"))
 }
 
 fn read_named_impuls_form_values(
-    document: &PdfDocument<'_>,
+    document: &mut DocumentEditor,
 ) -> Result<HashMap<String, String>, String> {
-    if document.form().is_none() {
-        return Err("Quell-PDF enthält kein PDF-Formular.".to_string());
-    }
-
     let mut result = HashMap::new();
-
-    for page in document.pages().iter() {
-        for annotation in page.annotations().iter() {
-            let Some(field) = annotation.as_form_field() else {
-                continue;
-            };
-            let name = field.name().unwrap_or_default();
-            if !IMPULS_FORM_FIELD_NAMES.contains(&name.as_str()) {
-                continue;
-            }
-
-            let Some(text_field) = field.as_text_field() else {
-                return Err(format!("Feld '{name}' in der Quell-PDF ist kein Textfeld."));
-            };
-            result.insert(name, text_field.value().unwrap_or_default());
+    for field in document
+        .get_form_fields()
+        .map_err(|error| error.to_string())?
+    {
+        let name = field.name().to_string();
+        if !IMPULS_FORM_FIELD_NAMES.contains(&name.as_str()) {
+            continue;
         }
+        if field.field_type() != Some(&FieldType::Text) {
+            return Err(format!("Feld '{name}' in der Quell-PDF ist kein Textfeld."));
+        }
+        let value = match field.value() {
+            FormFieldValue::Text(value) => value,
+            FormFieldValue::None => String::new(),
+            _ => return Err(format!("Feld '{name}' enthält keinen Text.")),
+        };
+        result.insert(name, value);
     }
-
     for name in IMPULS_FORM_FIELD_NAMES {
         if !result.contains_key(name) {
             return Err(format!(
@@ -266,7 +192,6 @@ fn read_named_impuls_form_values(
             ));
         }
     }
-
     Ok(result)
 }
 
@@ -377,5 +302,28 @@ mod tests {
     #[test]
     fn rejects_losung_without_blank_line_separator() {
         assert!(try_to_parse_losung("AT\nNT").is_err());
+    }
+
+    #[test]
+    fn reads_and_copies_editable_form_values() {
+        let input = Path::new(env!("CARGO_MANIFEST_DIR")).join("tests/fixtures/pdf/form.pdf");
+        let output =
+            std::env::temp_dir().join(format!("impulsor-pdf-copy-{}.pdf", std::process::id()));
+        let engine = PdfEngine::new();
+        let model = ImpulsModel::build_from_path_buf(&input);
+        let impuls = Impuls::build_from_model(&model, &engine).unwrap();
+        let values = impuls.read_form_field_values().unwrap();
+        assert_eq!(values.losung_at, "Güte und Hoffnung");
+        assert_eq!(values.losung_nt, "Friede für alle");
+        assert_eq!(values.autor, "Änne Müller");
+        copy_impuls_fields_to_template(&input, &input, &output, &engine).unwrap();
+        let mut copied = DocumentEditor::open(&output).unwrap();
+        let values = read_named_impuls_form_values(&mut copied).unwrap();
+        assert_eq!(values["Autor"], "Änne Müller");
+        assert_eq!(
+            values["Text Tagesimpuls"],
+            "Grüße aus der Gemeinde.\nEin zweiter Absatz."
+        );
+        std::fs::remove_file(output).unwrap();
     }
 }

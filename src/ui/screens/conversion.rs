@@ -17,7 +17,7 @@ use crate::{
         ImpulsFileType,
     },
     impuls::{Impuls, ImpulsConvertingState, ImpulsModel},
-    ui::PdfiumLibState,
+    ui::PdfEngineState,
 };
 
 use super::super::{
@@ -25,7 +25,7 @@ use super::super::{
     file_icons::{
         build_icon_audio_error, build_icon_audio_success, build_icon_default,
         build_icon_file_search, build_icon_html_error, build_icon_html_success,
-        build_icon_image_error, build_icon_image_success,
+        build_icon_image_error, build_icon_image_success, build_icon_warning,
     },
     material_symbols,
 };
@@ -125,7 +125,7 @@ impl State {
         Task::perform(picked_files_future.pick_files(), map_message)
     }
 
-    pub fn update(&mut self, message: Message, pdfium: &PdfiumLibState) -> Action {
+    pub fn update(&mut self, message: Message, pdf_engine: &PdfEngineState) -> Action {
         match message {
             Message::ConvertSelected => self.start_selected_conversion(),
             Message::AddFiles => Action::Run(self.request_file_addition()),
@@ -169,7 +169,7 @@ impl State {
                 }
                 Action::None
             }
-            Message::ConvertNext => Action::Run(self.process_file(pdfium)),
+            Message::ConvertNext => Action::Run(self.process_file(pdf_engine)),
             Message::ConvertDone => {
                 self.mode = Mode::Default;
                 self.pending_files.clear();
@@ -298,12 +298,14 @@ impl State {
                         let impuls_state_html = match &model.state_html {
                             ImpulsConvertingState::Default => build_icon_default(),
                             ImpulsConvertingState::Success => build_icon_html_success(),
+                            ImpulsConvertingState::Warning(msg) => build_icon_warning(msg),
                             ImpulsConvertingState::Failure(msg) => build_icon_html_error(msg),
                         };
 
                         let impuls_state_image = match &model.state_image {
                             ImpulsConvertingState::Default => build_icon_default(),
                             ImpulsConvertingState::Success => build_icon_image_success(),
+                            ImpulsConvertingState::Warning(msg) => build_icon_warning(msg),
                             ImpulsConvertingState::Failure(msg) => build_icon_image_error(msg),
                         };
 
@@ -373,7 +375,7 @@ impl State {
         .into()
     }
 
-    fn process_file(&mut self, pdfium: &PdfiumLibState) -> Task<Message> {
+    fn process_file(&mut self, pdf_engine: &PdfEngineState) -> Task<Message> {
         let Some(next_index) = self.pending_files.get(self.progress).copied() else {
             self.progress = self.pending_files.len();
             return Task::perform(async { () }, |_| Message::ConvertDone);
@@ -389,9 +391,9 @@ impl State {
                 println!("Convert Audio: {}", audio_model.get_path_input_str());
                 audio_model.convert();
             }
-            ImpulsFileType::Pdf(impuls_model) => match pdfium {
-                PdfiumLibState::Ok(pdfium) => {
-                    match Impuls::build_from_model(impuls_model, pdfium) {
+            ImpulsFileType::Pdf(impuls_model) => match pdf_engine {
+                PdfEngineState::Ok(pdf_engine) => {
+                    match Impuls::build_from_model(impuls_model, pdf_engine) {
                         Ok(impuls_loaded) => {
                             println!("Build HTML");
                             impuls_model.state_html = match impuls_loaded.save_as_txt(impuls_model)
@@ -403,7 +405,10 @@ impl State {
                             println!("Build Image");
                             impuls_model.state_image = match impuls_loaded.save_as_jpg(impuls_model)
                             {
-                                Ok(_) => ImpulsConvertingState::Success,
+                                Ok(warnings) if warnings.is_empty() => {
+                                    ImpulsConvertingState::Success
+                                }
+                                Ok(warnings) => ImpulsConvertingState::Warning(warnings.join("\n")),
                                 Err(error) => ImpulsConvertingState::Failure(error.to_string()),
                             };
                         }
@@ -414,7 +419,7 @@ impl State {
                         }
                     }
                 }
-                PdfiumLibState::NotFound(error) => {
+                PdfEngineState::NotFound(error) => {
                     impuls_model.state_html = ImpulsConvertingState::Failure(error.clone());
                     impuls_model.state_image = ImpulsConvertingState::Failure(error.clone());
                 }

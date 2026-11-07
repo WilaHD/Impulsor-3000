@@ -22,8 +22,7 @@
   - Additional installation steps after download if the app can't be launched. Please run the following steps in the terminal
     1. Switch to the directory where you downloaded and saved the `Impulsor-3000.app`
     2. Run `xattr -dr com.apple.quarantine Impulsor-3000.app`
-    3. Re-sign the bundled libraries and executable first:
-        - `codesign --force --sign - --timestamp=none Impulsor-3000.app/Contents/Resources/libs/pdfium/mac-arm64/libpdfium.dylib`
+    3. Re-sign the executable first:
         - `codesign --force --sign - --timestamp=none Impulsor-3000.app/Contents/MacOS/impulsor3000`
     4. Re-sign the app bundle:
         - `codesign --force --sign - --timestamp=none Impulsor-3000.app`
