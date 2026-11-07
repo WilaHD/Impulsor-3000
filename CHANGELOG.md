@@ -7,6 +7,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.5.0](https://github.com/WilaHD/Impulsor-3000/compare/v0.4.0...v0.5.0) - 2026-11-07
+
+### Added
+
+- add update info ([#21](https://github.com/WilaHD/Impulsor-3000/pull/21))
+- *(audio)* replace LAME with native Rust MP3 encoder ([#18](https://github.com/WilaHD/Impulsor-3000/pull/18))
+
+### Other
+
+- Feat/replace pdfium with oxide hayro ([#20](https://github.com/WilaHD/Impulsor-3000/pull/20))
+
 ### Changed
 
 - PDF conversion now uses `pdf_oxide` and `hayro`, with Arial or bundled Liberation Sans for form text.
