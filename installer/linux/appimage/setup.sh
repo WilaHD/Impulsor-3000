@@ -6,14 +6,12 @@ if [ -z "${APP_VERSION:-}" ]; then
     APP_VERSION="$(cargo pkgid --manifest-path ../../../Cargo.toml 2>/dev/null | sed 's/.*@//')"
 fi
 
-mkdir -p ${APPDIR}/libs/lame/linux-x64
 mkdir -p ${APPDIR}/libs/pdfium/linux-x64
 
 cp ../impulsor3000.desktop ${APPDIR}/impulsor3000.desktop
 if [ -n "${APP_VERSION}" ]; then
     printf '\nX-AppImage-Version=%s\n' "${APP_VERSION}" >> ${APPDIR}/impulsor3000.desktop
 fi
-cp ../../../libs/lame/linux-x64/libmp3lame.so   ${APPDIR}/libs/lame/linux-x64/libmp3lame.so
 cp ../../../libs/pdfium/linux-x64/libpdfium.so  ${APPDIR}/libs/pdfium/linux-x64/libpdfium.so
 cp ../../../target/release/impulsor3000         ${APPDIR}/impulsor3000
 cp ../../../imgs/logo.png                       ${APPDIR}/impulsor3000.png

@@ -32,10 +32,6 @@ pub fn pdfium_library_path() -> Result<PathBuf, String> {
     find_library_path("PDFium", pdfium_library_relative_candidates()?)
 }
 
-pub fn lame_library_path() -> Result<PathBuf, String> {
-    find_library_path("LAME", lame_library_relative_candidates()?)
-}
-
 pub fn app_settings_file_path() -> Result<PathBuf, String> {
     app_settings_file_path_from(env::var_os(APP_SETTINGS_FILE_ENV_VAR), dirs::config_dir())
 }
@@ -113,15 +109,6 @@ fn pdfium_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
         ("windows", "x86_64") => Ok(vec![PathBuf::from("libs/pdfium/win-x64/pdfium.dll")]),
         ("macos", "aarch64") => Ok(vec![PathBuf::from("libs/pdfium/mac-arm64/libpdfium.dylib")]),
         (os, arch) => Err(format!("Unsupported platform for PDFium: {os}/{arch}")),
-    }
-}
-
-fn lame_library_relative_candidates() -> Result<Vec<PathBuf>, String> {
-    match (env::consts::OS, env::consts::ARCH) {
-        ("linux", "x86_64") => Ok(vec![PathBuf::from("libs/lame/linux-x64/libmp3lame.so")]),
-        ("windows", "x86_64") => Ok(vec![PathBuf::from("libs/lame/win-x64/libmp3lame.dll")]),
-        ("macos", "aarch64") => Ok(vec![PathBuf::from("libs/lame/mac-arm64/libmp3lame.dylib")]),
-        (os, arch) => Err(format!("Unsupported platform for LAME: {os}/{arch}")),
     }
 }
 
