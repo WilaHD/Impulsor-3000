@@ -6,17 +6,20 @@ if [ -z "${APP_VERSION:-}" ]; then
     APP_VERSION="$(cargo pkgid --manifest-path ../../../Cargo.toml 2>/dev/null | sed 's/.*@//')"
 fi
 
-mkdir -p ${APPDIR}/libs/pdfium/linux-x64
+
+mkdir -p ${APPDIR}
 
 cp ../impulsor3000.desktop ${APPDIR}/impulsor3000.desktop
 if [ -n "${APP_VERSION}" ]; then
     printf '\nX-AppImage-Version=%s\n' "${APP_VERSION}" >> ${APPDIR}/impulsor3000.desktop
 fi
-cp ../../../libs/pdfium/linux-x64/libpdfium.so  ${APPDIR}/libs/pdfium/linux-x64/libpdfium.so
 cp ../../../target/release/impulsor3000         ${APPDIR}/impulsor3000
 cp ../../../imgs/logo.png                       ${APPDIR}/impulsor3000.png
 cp run.sh                                       ${APPDIR}/run.sh
 
-chmod u+x ${APPDIR}/impulsor3000
-chmod u+x ${APPDIR}/run.sh
-cd ${APPDIR} && ln -s ./run.sh ./AppRun
+# appimagetool requires the files to be readable/executable by everyone
+chmod 755 ${APPDIR}/impulsor3000
+chmod 755 ${APPDIR}/run.sh
+chmod a+r ${APPDIR}/impulsor3000.desktop ${APPDIR}/impulsor3000.png
+chmod 755 ${APPDIR}
+cd ${APPDIR} && ln -sf ./run.sh ./AppRun
