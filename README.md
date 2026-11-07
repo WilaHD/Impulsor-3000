@@ -24,6 +24,8 @@ Versionen für weitere Plattformen sind nicht verfügbar.
 
 [Download](https://github.com/wilahd/Impulsor-3000/releases/latest/) &larr; Impulsor-3000 hier im Abschnitt "Assets" plattformspezifisch herunterladen.
 
+Beim Programmstart wird im Hintergrund auf GitHub nach einer neueren stabilen Version gesucht. Ist eine verfügbar, zeigt das Programm einen Hinweis mit einem Link zur Downloadseite. Updates werden nicht automatisch heruntergeladen oder installiert. Wenn die Prüfung fehlschlägt, kann das Programm normal weiterverwendet werden.
+
 <!--
 [![GitHub Downloads (specific asset, latest release)](https://img.shields.io/github/downloads/WilaHD/Impulsor-3000/latest/impulsor3000_setup.exe%20?label=Download%20Windows&color=blue)
 ](https://github.com/wilahd/Impulsor-3000/releases/latest/download/impulsor3000_setup.exe)

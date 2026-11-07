@@ -1,9 +1,12 @@
 use std::{collections::HashSet, path::PathBuf};
 
-use crate::pdf_engine::PdfEngine;
+use crate::{
+    pdf_engine::PdfEngine,
+    update_check::{self, UpdateInfo},
+};
 use iced::{
     event,
-    widget::{opaque, stack},
+    widget::{button, column, container, opaque, row, stack, text},
     window, Element, Event, Fill, Subscription, Task, Theme,
 };
 
@@ -41,6 +44,9 @@ pub enum Message {
     FileHovered(PathBuf),
     FileDropped(PathBuf),
     FilesHoveredLeft,
+    UpdateChecked(Option<UpdateInfo>),
+    DismissUpdate,
+    OpenUpdatePage,
 }
 
 struct MainView {
@@ -50,6 +56,7 @@ struct MainView {
     is_drag_hovering: bool,
     hovered_files: Vec<PathBuf>,
     processed_drop_paths: HashSet<PathBuf>,
+    update_info: Option<UpdateInfo>,
 }
 
 impl MainView {
@@ -67,8 +74,18 @@ impl MainView {
                 is_drag_hovering: false,
                 hovered_files: vec![],
                 processed_drop_paths: HashSet::new(),
+                update_info: None,
             },
-            Task::none(),
+            Task::perform(
+                async {
+                    let (sender, receiver) = futures_channel::oneshot::channel();
+                    std::thread::spawn(move || {
+                        let _ = sender.send(update_check::check());
+                    });
+                    receiver.await.unwrap_or(None)
+                },
+                Message::UpdateChecked,
+            ),
         )
     }
 
@@ -78,17 +95,40 @@ impl MainView {
 
     fn update(&mut self, message: Message) -> Task<Message> {
         match message {
+            Message::UpdateChecked(info) => {
+                self.update_info = info;
+                if self.update_info.is_some() {
+                    self.is_drag_hovering = false;
+                    self.hovered_files.clear();
+                    self.processed_drop_paths.clear();
+                }
+                Task::none()
+            }
+            Message::DismissUpdate => {
+                self.update_info = None;
+                Task::none()
+            }
+            Message::OpenUpdatePage => {
+                let _ = opener::open(update_check::RELEASES_URL);
+                Task::none()
+            }
             Message::Welcome(message) => self.update_welcome(message),
             Message::Settings(message) => self.update_settings(message),
             Message::Conversion(message) => self.update_conversion(message),
             Message::TemplateCopy(message) => self.update_template_copy(message),
             Message::FileHovered(path) => {
+                if self.update_info.is_some() {
+                    return Task::none();
+                }
                 self.is_drag_hovering = true;
                 self.processed_drop_paths.clear();
                 push_unique_path(&mut self.hovered_files, path);
                 Task::none()
             }
             Message::FileDropped(path) => {
+                if self.update_info.is_some() {
+                    return Task::none();
+                }
                 if self.processed_drop_paths.remove(&path) {
                     return Task::none();
                 }
@@ -122,7 +162,7 @@ impl MainView {
             Screen::TemplateCopy(template_copy) => template_copy.view().map(Message::TemplateCopy),
         };
 
-        if self.is_drag_hovering {
+        let content = if self.is_drag_hovering {
             stack([
                 content,
                 opaque(
@@ -130,6 +170,37 @@ impl MainView {
                         .width(Fill)
                         .height(Fill),
                 ),
+            ])
+            .width(Fill)
+            .height(Fill)
+            .into()
+        } else {
+            content
+        };
+
+        if let Some(info) = &self.update_info {
+            let dialog = container(
+                column![
+                    text("Neue Version verfügbar").size(24),
+                    text(format!(
+                        "Installierte Version: {}\nNeue Version: {}",
+                        info.current_version, info.latest_version
+                    )),
+                    text("Eine neue Version von Impulsor 3000 ist verfügbar."),
+                    row![
+                        button("Zur Downloadseite").on_press(Message::OpenUpdatePage),
+                        button("OK").on_press(Message::DismissUpdate),
+                    ]
+                    .spacing(12),
+                ]
+                .spacing(16),
+            )
+            .padding(24)
+            .max_width(520)
+            .style(container::bordered_box);
+            stack([
+                content,
+                opaque(container(dialog).width(Fill).height(Fill).center(Fill)),
             ])
             .width(Fill)
             .height(Fill)
@@ -383,5 +454,34 @@ impl MainView {
 fn push_unique_path(paths: &mut Vec<PathBuf>, path: PathBuf) {
     if !paths.iter().any(|existing_path| existing_path == &path) {
         paths.push(path);
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn update_notice_is_shown_and_can_be_dismissed() {
+        let (mut app, _startup_task) = MainView::new();
+        assert!(app.update_info.is_none());
+
+        let _ = app.update(Message::UpdateChecked(None));
+        assert!(app.update_info.is_none());
+
+        let info = UpdateInfo {
+            current_version: "1.0.0".into(),
+            latest_version: "v2.0.0".into(),
+        };
+        let _ = app.update(Message::UpdateChecked(Some(info.clone())));
+        assert_eq!(app.update_info, Some(info));
+        let _ = app.view();
+
+        let _ = app.update(Message::FileHovered(PathBuf::from("example.pdf")));
+        assert!(!app.is_drag_hovering);
+        let _ = app.update(Message::DismissUpdate);
+        assert!(app.update_info.is_none());
+        let _ = app.update(Message::FileHovered(PathBuf::from("example.pdf")));
+        assert!(app.is_drag_hovering);
     }
 }
