@@ -1,11 +1,11 @@
 use std::{collections::HashSet, path::PathBuf};
 
+use crate::pdf_engine::PdfEngine;
 use iced::{
     event,
     widget::{opaque, stack},
     window, Element, Event, Fill, Subscription, Task, Theme,
 };
-use pdfium_render::prelude::*;
 
 pub mod file_assets;
 pub mod file_background;
@@ -14,17 +14,14 @@ pub mod file_icons;
 pub mod material_symbols;
 mod screens;
 
-use impulsor3000::{
-    app_config::{AppConfig, ThemeMode},
-    platform_paths,
-};
+use impulsor3000::app_config::{AppConfig, ThemeMode};
 use screens::{conversion, settings, template_copy, welcome};
 
 #[cfg(target_os = "linux")]
 const WAYLAND_APPLICATION_ID: &str = "impulsor3000";
 
-pub enum PdfiumLibState {
-    Ok(Pdfium),
+pub enum PdfEngineState {
+    Ok(PdfEngine),
     NotFound(String),
 }
 
@@ -48,7 +45,7 @@ pub enum Message {
 
 struct MainView {
     screen: Screen,
-    pdfium: PdfiumLibState,
+    pdf_engine: PdfEngineState,
     app_config: AppConfig,
     is_drag_hovering: bool,
     hovered_files: Vec<PathBuf>,
@@ -57,25 +54,16 @@ struct MainView {
 
 impl MainView {
     fn new() -> (MainView, Task<Message>) {
-        let pdfium_lib_state = match platform_paths::pdfium_library_path() {
-            Ok(pdfium_path) => match Pdfium::bind_to_library(&pdfium_path) {
-                Ok(pdfium) => {
-                    let pdfium = Pdfium::new(pdfium);
-                    PdfiumLibState::Ok(pdfium)
-                }
-                Err(e) => PdfiumLibState::NotFound(format!(
-                    "Pdfium library not found at {}. Error: {e:?}",
-                    pdfium_path.display()
-                )),
-            },
-            Err(e) => PdfiumLibState::NotFound(e),
-        };
+        let app_config = AppConfig::load();
+        let mut pdf_engine = PdfEngine::new();
+        pdf_engine.set_line_spacing_percent(app_config.line_spacing_percent);
+        let pdf_engine_lib_state = PdfEngineState::Ok(pdf_engine);
 
         (
             Self {
                 screen: Screen::Welcome(welcome::State::new()),
-                pdfium: pdfium_lib_state,
-                app_config: AppConfig::load(),
+                pdf_engine: pdf_engine_lib_state,
+                app_config,
                 is_drag_hovering: false,
                 hovered_files: vec![],
                 processed_drop_paths: HashSet::new(),
@@ -128,7 +116,7 @@ impl MainView {
 
     fn view(&self) -> Element<'_, Message> {
         let content = match &self.screen {
-            Screen::Welcome(welcome) => welcome.view(&self.pdfium).map(Message::Welcome),
+            Screen::Welcome(welcome) => welcome.view(&self.pdf_engine).map(Message::Welcome),
             Screen::Settings(settings) => settings.view().map(Message::Settings),
             Screen::Conversion(conversion) => conversion.view().map(Message::Conversion),
             Screen::TemplateCopy(template_copy) => template_copy.view().map(Message::TemplateCopy),
@@ -263,7 +251,10 @@ impl MainView {
                 task.map(Message::Conversion)
             }
             welcome::Action::OpenSettings => {
-                self.screen = Screen::Settings(settings::State::new(self.app_config.theme_mode));
+                self.screen = Screen::Settings(settings::State::new(
+                    self.app_config.theme_mode,
+                    self.app_config.line_spacing_percent,
+                ));
                 Task::none()
             }
             welcome::Action::Exit => window::get_latest().and_then(window::close),
@@ -276,7 +267,7 @@ impl MainView {
                 return Task::none();
             };
 
-            settings.update(message, &self.pdfium)
+            settings.update(message, &self.pdf_engine)
         };
 
         match action {
@@ -290,6 +281,17 @@ impl MainView {
                     settings.set_settings_error(save_error);
                 }
 
+                Task::none()
+            }
+            settings::Action::SaveLineSpacing(percent) => {
+                self.app_config.line_spacing_percent = percent;
+                if let PdfEngineState::Ok(engine) = &mut self.pdf_engine {
+                    engine.set_line_spacing_percent(percent);
+                }
+                let save_error = self.app_config.save().err();
+                if let Screen::Settings(settings) = &mut self.screen {
+                    settings.set_settings_error(save_error);
+                }
                 Task::none()
             }
             settings::Action::OpenWelcome => {
@@ -309,7 +311,7 @@ impl MainView {
                 return Task::none();
             };
 
-            template_copy.update(message, &self.pdfium)
+            template_copy.update(message, &self.pdf_engine)
         };
 
         match action {
@@ -320,7 +322,10 @@ impl MainView {
                 Task::none()
             }
             template_copy::Action::OpenSettings => {
-                self.screen = Screen::Settings(settings::State::new(self.app_config.theme_mode));
+                self.screen = Screen::Settings(settings::State::new(
+                    self.app_config.theme_mode,
+                    self.app_config.line_spacing_percent,
+                ));
                 Task::none()
             }
         }
@@ -332,7 +337,7 @@ impl MainView {
                 return Task::none();
             };
 
-            conversion.update(message, &self.pdfium)
+            conversion.update(message, &self.pdf_engine)
         };
 
         self.apply_conversion_action(action)

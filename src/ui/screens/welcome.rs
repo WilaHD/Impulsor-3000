@@ -4,7 +4,7 @@ use iced::{
     Alignment, Element, Fill,
 };
 
-use super::super::{file_banner, material_symbols, PdfiumLibState};
+use super::super::{file_banner, material_symbols, PdfEngineState};
 
 pub struct State;
 
@@ -34,13 +34,18 @@ impl State {
         }
     }
 
-    pub fn view(&self, pdfium: &PdfiumLibState) -> Element<'_, Message> {
+    pub fn view(&self, pdf_engine: &PdfEngineState) -> Element<'_, Message> {
         let title = file_banner::banner();
 
-        let content = match pdfium {
-            PdfiumLibState::Ok(_) => container(
+        let content = match pdf_engine {
+            PdfEngineState::Ok(engine) => container(
                 column![
-                    vertical_space().height(100),
+                    vertical_space().height(60),
+                    if engine.using_fallback() {
+                        text("Warnung: Arial ist nicht vollständig verfügbar. Für PDF-Bilder wird Liberation Sans als Ersatzschrift verwendet.").width(500)
+                    } else {
+                        text("").width(500)
+                    },
                     button(
                         container(material_symbols::centered_label(
                             material_symbols::icon::ADD,
@@ -75,7 +80,7 @@ impl State {
                 ]
                 .spacing(20),
             ),
-            PdfiumLibState::NotFound(error_msg) => container(text(error_msg.clone())),
+            PdfEngineState::NotFound(error_msg) => container(text(error_msg.clone())),
         };
 
         column![

@@ -1,7 +1,13 @@
 ### Externe Bibliotheken
-- `PDFium` Bibliothek zur Verarbeitung der PDF-Dateien (ohne V8)
-    - Quelle: https://github.com/bblanchon/pdfium-binaries
-    - Version: 7543 (134.0.6968.0)
+- `pdf_oxide`: PDF-Formulare in Rust (MIT/Apache-2.0)
+    - Quelle: https://crates.io/crates/pdf_oxide
+    - Version: siehe `Cargo.lock`
+- `hayro`: PDF-Rendering in Rust (MIT/Apache-2.0)
+    - Quelle: https://crates.io/crates/hayro
+- `cosmic-text`: Textlayout und Rasterung (MIT/Apache-2.0)
+    - Quelle: https://crates.io/crates/cosmic-text
+- `Liberation Sans`: eingebettete Ersatzschrift (SIL Open Font License 1.1)
+    - Lizenz: `fonts/LiberationSans-LICENSE.txt`
 - `rusty_mp3`: MP3-Encoding in Rust (Apache-2.0)
     - Quelle: https://crates.io/crates/rusty_mp3
     - Version: siehe `Cargo.lock`

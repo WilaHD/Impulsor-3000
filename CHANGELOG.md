@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- PDF conversion now uses `pdf_oxide` and `hayro`, with Arial or bundled Liberation Sans for form text.
 - MP3 conversion now uses the Rust-native `rusty_mp3` encoder.
 
 ## [0.4.0](https://github.com/WilaHD/Impulsor-3000/compare/v0.3.0...v0.4.0) - 2026-08-09

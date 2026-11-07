@@ -1,13 +1,15 @@
 use iced::{
     alignment::Horizontal,
-    widget::{button, column, container, horizontal_rule, radio, row, scrollable, text},
+    widget::{button, column, container, horizontal_rule, radio, row, scrollable, slider, text},
     Alignment::Center,
     Element, Fill, Task,
 };
-use impulsor3000::app_config::ThemeMode;
+use impulsor3000::app_config::{
+    ThemeMode, DEFAULT_LINE_SPACING_PERCENT, MAX_LINE_SPACING_PERCENT, MIN_LINE_SPACING_PERCENT,
+};
 use rfd::FileHandle;
 
-use crate::{impuls::Impuls, ui::PdfiumLibState};
+use crate::{impuls::Impuls, ui::PdfEngineState};
 
 use super::super::{file_background, file_banner};
 
@@ -15,12 +17,25 @@ const SETTINGS_LABEL_WIDTH: u16 = 300;
 const SETTINGS_VALUE_WIDTH: u16 = 380;
 const SETTINGS_TABLE_WIDTH: u16 = SETTINGS_LABEL_WIDTH + SETTINGS_VALUE_WIDTH + 24;
 
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct State {
     is_selecting_templates: bool,
     mode: Mode,
     theme_mode: ThemeMode,
+    line_spacing_percent: u16,
     settings_error: Option<String>,
+}
+
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            is_selecting_templates: false,
+            mode: Mode::default(),
+            theme_mode: ThemeMode::default(),
+            line_spacing_percent: DEFAULT_LINE_SPACING_PERCENT,
+            settings_error: None,
+        }
+    }
 }
 
 #[derive(Debug, Default)]
@@ -41,6 +56,8 @@ pub enum Message {
     GoToWelcome,
     ShowOverview,
     ThemeModeSelected(ThemeMode),
+    LineSpacingChanged(u16),
+    ResetLineSpacing,
     TestTemplateFileDialog,
     TemplatesPicked(Option<Vec<FileHandle>>),
     OpenTemplateCopy,
@@ -50,19 +67,21 @@ pub enum Action {
     None,
     Run(Task<Message>),
     SaveThemeMode(ThemeMode),
+    SaveLineSpacing(u16),
     OpenWelcome,
     OpenTemplateCopy,
 }
 
 impl State {
-    pub fn new(theme_mode: ThemeMode) -> Self {
+    pub fn new(theme_mode: ThemeMode, line_spacing_percent: u16) -> Self {
         Self {
             theme_mode,
+            line_spacing_percent,
             ..Self::default()
         }
     }
 
-    pub fn update(&mut self, message: Message, pdfium: &PdfiumLibState) -> Action {
+    pub fn update(&mut self, message: Message, pdf_engine: &PdfEngineState) -> Action {
         match message {
             Message::GoToWelcome => Action::OpenWelcome,
             Message::ShowOverview => {
@@ -73,6 +92,17 @@ impl State {
                 self.theme_mode = theme_mode;
                 self.settings_error = None;
                 Action::SaveThemeMode(theme_mode)
+            }
+            Message::LineSpacingChanged(percent) => {
+                self.line_spacing_percent =
+                    percent.clamp(MIN_LINE_SPACING_PERCENT, MAX_LINE_SPACING_PERCENT);
+                self.settings_error = None;
+                Action::SaveLineSpacing(self.line_spacing_percent)
+            }
+            Message::ResetLineSpacing => {
+                self.line_spacing_percent = DEFAULT_LINE_SPACING_PERCENT;
+                self.settings_error = None;
+                Action::SaveLineSpacing(self.line_spacing_percent)
             }
             Message::TestTemplateFileDialog => Action::Run(self.pick_templates()),
             Message::OpenTemplateCopy => Action::OpenTemplateCopy,
@@ -86,7 +116,7 @@ impl State {
 
                 self.mode = Mode::ShowTemplateValidationResults(validate_templates(
                     picked_templates,
-                    pdfium,
+                    pdf_engine,
                 ));
 
                 Action::None
@@ -125,6 +155,25 @@ impl State {
                 let settings_table = column![
                     horizontal_rule(1),
                     settings_row("Darstellung", theme_options),
+                    horizontal_rule(1),
+                    settings_row(
+                        "Zeilenabstand (PDF-Bild)",
+                        row![
+                            slider(
+                                MIN_LINE_SPACING_PERCENT..=MAX_LINE_SPACING_PERCENT,
+                                self.line_spacing_percent,
+                                Message::LineSpacingChanged
+                            )
+                            .step(1_u16)
+                            .width(140),
+                            text(format!("{} %", self.line_spacing_percent)).width(60),
+                            button("Zurücksetzen")
+                                .style(button::secondary)
+                                .on_press(Message::ResetLineSpacing),
+                        ]
+                        .spacing(10)
+                        .align_y(Center)
+                    ),
                     horizontal_rule(1),
                     settings_row("App-Version", text(current_app_version())),
                     horizontal_rule(1),
@@ -263,7 +312,7 @@ fn settings_row<'a>(
 
 fn validate_templates(
     picked_templates: Vec<FileHandle>,
-    pdfium: &PdfiumLibState,
+    pdf_engine: &PdfEngineState,
 ) -> Vec<TemplateValidationResult> {
     let mut results = vec![];
 
@@ -275,15 +324,15 @@ fn validate_templates(
             Some("pdf") => {
                 let impuls_template_model = crate::impuls::ImpulsModel::build_from_path_buf(&path);
 
-                match pdfium {
-                    PdfiumLibState::Ok(pdfium) => {
-                        Impuls::build_from_model(&impuls_template_model, pdfium)
+                match pdf_engine {
+                    PdfEngineState::Ok(pdf_engine) => {
+                        Impuls::build_from_model(&impuls_template_model, pdf_engine)
                             .map_err(|error| vec![error.to_string()])
                             .and_then(|impuls_template| {
                                 impuls_template.test_pdf_form_fields_as_str()
                             })
                     }
-                    PdfiumLibState::NotFound(error) => Err(vec![error.to_string()]),
+                    PdfEngineState::NotFound(error) => Err(vec![error.to_string()]),
                 }
             }
             _ => Err(vec![format!(
@@ -301,4 +350,27 @@ fn validate_templates(
     }
 
     results
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::pdf_engine::PdfEngine;
+
+    #[test]
+    fn changing_and_resetting_line_spacing_emits_the_saved_value() {
+        let mut settings = State::new(ThemeMode::Dark, DEFAULT_LINE_SPACING_PERCENT);
+        let engine = PdfEngineState::Ok(PdfEngine::new());
+        assert!(matches!(
+            settings.update(Message::LineSpacingChanged(175), &engine),
+            Action::SaveLineSpacing(175)
+        ));
+        assert_eq!(settings.line_spacing_percent, 175);
+        assert!(matches!(
+            settings.update(Message::ResetLineSpacing, &engine),
+            Action::SaveLineSpacing(DEFAULT_LINE_SPACING_PERCENT)
+        ));
+        assert_eq!(settings.line_spacing_percent, DEFAULT_LINE_SPACING_PERCENT);
+        assert_eq!(settings.theme_mode, ThemeMode::Dark);
+    }
 }

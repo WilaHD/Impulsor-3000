@@ -23,6 +23,13 @@ pub fn build_icon_image_success<Message: 'static>() -> Tooltip<'static, Message>
     image_success
 }
 
+pub fn build_icon_warning<Message: 'static>(message: &str) -> Tooltip<'static, Message> {
+    let handle = svg::Handle::from_memory(AssetImages::get("warning.svg").unwrap().data);
+    let icon = svg(handle).height(20).width(20);
+    let message = container(text(format!("Warnung:\n{message}"))).style(container::bordered_box);
+    tooltip(icon, message, tooltip::Position::Left)
+}
+
 pub fn build_icon_image_error<Message: 'static>(error_msg: &str) -> Tooltip<'static, Message> {
     let tooltip_message = format!("Bildumwandlung fehlerhaft! Fehler:\n{error_msg}");
 
