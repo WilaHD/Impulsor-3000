@@ -7,6 +7,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- MP3 conversion now uses the Rust-native `rusty_mp3` encoder.
+
 ## [0.4.0](https://github.com/WilaHD/Impulsor-3000/compare/v0.3.0...v0.4.0) - 2026-08-09
 
 ### Added
@@ -30,11 +34,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - add selection boxes
 - add selection boxes
 - add macos appicon
-- *(lame)* add linux lame
 - *(installer max)* add .app packaging
 - initial macos arm64 support
-- macos dynlibs for pdfium and lame
-- *(lame)* add workflow to build lame lib
 - feat(settings) add some padding so content is not directly attached on the border
 - refactoring
 - *(start)* exit button
@@ -51,11 +52,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - icon font file path
 - *(macos)* new website path
 - *(macos)* remove macos lib duplicates
-- *(macos)* lame libary paths
 - *(installer mac)* add zpipping to .app packaging
-- *(mac arm64)* remove build lame and fix lame path
-- *(mac arm64)* remove build lame and fix lame path
-- *(lame)* add temporary trigger
 - *(workflow)* makensis install with choco
 - *(workflow)* build binaries
 - *(banner)* render text as svg path

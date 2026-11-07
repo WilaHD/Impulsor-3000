@@ -30,7 +30,6 @@ var SM_Folder
 
 !system "bash -c 'mkdir ./install_dir'"
 !system "bash -c 'cp ../../target/release/impulsor3000.exe ./install_dir/impulsor3000.exe'"
-!system "bash -c 'cp ../../libs/lame/win-x64/libmp3lame.dll ./install_dir/libmp3lame.dll'"
 
 !system "bash -c 'mkdir ./install_dir/libs'"
 !system "bash -c 'mkdir ./install_dir/libs/pdfium'"
